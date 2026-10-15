@@ -14,15 +14,25 @@ import {
   Layers,
   ChevronRight,
   RefreshCw,
+  ChevronLeft,
+  Calendar,
+  Building,
+  User,
+  Check,
+  RotateCcw,
 } from 'lucide-react';
 
 export const Payments: React.FC = () => {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [stateFilter, setStateFilter] = useState('');
   const [railFilter, setRailFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchPayments = async () => {
     setLoading(true);
@@ -30,7 +40,7 @@ export const Payments: React.FC = () => {
       const res = await api.listPayments({
         state: stateFilter || undefined,
         rail: railFilter || undefined,
-        limit: 50,
+        limit: 100,
       });
       setPayments(Array.isArray(res) ? res : res?.items || []);
     } catch (err) {
@@ -58,15 +68,16 @@ export const Payments: React.FC = () => {
   };
 
   const handleExportCsv = () => {
-    if (!payments.length) return;
-    const headers = ['ID', 'Reference', 'State', 'Amount_Minor', 'Currency', 'Rail', 'Created_At'];
-    const rows = payments.map((p) => [
+    if (!filteredPayments.length) return;
+    const headers = ['Transaction_ID', 'Reference', 'Customer_Merchant', 'Amount_INR', 'Payment_Method', 'Payment_Network', 'Status', 'Date_Time'];
+    const rows = filteredPayments.map((p) => [
       p.id,
       p.reference,
+      p.customer_id || 'Retail Client',
+      (p.amount_minor / 100).toFixed(2),
+      p.payment_method || 'Digital Direct',
+      p.rail || 'AUTO',
       p.state,
-      p.amount_minor,
-      p.currency,
-      p.rail || '',
       p.created_at,
     ]);
     const csvContent =
@@ -75,158 +86,256 @@ export const Payments: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `paynexus_payments_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `paynexus_transactions_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const getBadgeColor = (state: string) => {
+  // Status badges: Success: green, Pending: amber, Failed: red, Reversed: grey
+  const getBadgeStyle = (state: string) => {
     switch (state) {
       case 'SETTLED':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
-      case 'SUBMITTED':
+      case 'SUCCESS':
+        return 'bg-emerald-50 text-[#10A66A] border-emerald-200';
       case 'AUTHORISED':
-        return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30';
+      case 'SUBMITTED':
+      case 'SCREENING':
+      case 'VALIDATED':
+      case 'CREATED':
+      case 'PENDING':
+        return 'bg-amber-50 text-[#F59E0B] border-amber-200';
       case 'REVIEW':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        return 'bg-amber-100 text-amber-800 border-amber-300';
       case 'BLOCKED':
       case 'FAILED':
-        return 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+        return 'bg-red-50 text-[#DC2626] border-red-200';
+      case 'REVERSED':
+      case 'CANCELLED':
+        return 'bg-slate-100 text-slate-600 border-slate-300';
       default:
-        return 'bg-slate-800 text-slate-300 border-slate-700';
+        return 'bg-slate-50 text-slate-600 border-slate-200';
     }
   };
+
+  // Filtering
+  const filteredPayments = payments.filter((p) => {
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch = !q || 
+      (p.reference && p.reference.toLowerCase().includes(q)) ||
+      (p.id && p.id.toLowerCase().includes(q)) ||
+      (p.customer_id && p.customer_id.toLowerCase().includes(q)) ||
+      (p.rail && p.rail.toLowerCase().includes(q));
+
+    const matchesDate = !dateFilter || (p.created_at && p.created_at.startsWith(dateFilter));
+    return matchesSearch && matchesDate;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage) || 1;
+  const paginatedPayments = filteredPayments.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="space-y-6 relative">
       {/* Page Title & Actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Payment Operations</h1>
-          <p className="text-sm text-slate-400">
-            Real-time transaction state ledger, message inspection, and compliance trace
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold tracking-tight text-[#102A56]">Transactions Operations</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
+              ISO 20022 Ledger
+            </span>
+          </div>
+          <p className="text-sm text-slate-500">
+            Real-time transaction state ledger, multi-column search, audit history, and validation traces
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={fetchPayments}
-            className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition"
+            className="p-2 rounded-xl bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 transition shadow-sm"
+            title="Refresh transactions"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={handleExportCsv}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-[#102A56] text-xs font-semibold border border-slate-200 transition shadow-sm"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5 text-blue-600" />
             <span>Export CSV</span>
           </button>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="glass-panel p-4 rounded-xl flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Filter className="w-4 h-4 text-slate-400" />
+      <div className="fintech-card p-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+          {/* Search by transaction ID or merchant */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Search by transaction ID, reference, or merchant..."
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-[#102A56] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+            />
+          </div>
+
+          {/* Status filter */}
           <select
             value={stateFilter}
-            onChange={(e) => setStateFilter(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none"
+            onChange={(e) => {
+              setStateFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 font-medium focus:outline-none focus:border-blue-600"
           >
-            <option value="">All States</option>
-            <option value="CREATED">CREATED</option>
-            <option value="VALIDATED">VALIDATED</option>
-            <option value="SCREENING">SCREENING</option>
-            <option value="AUTHORISED">AUTHORISED</option>
-            <option value="SUBMITTED">SUBMITTED</option>
-            <option value="SETTLED">SETTLED</option>
-            <option value="REVIEW">REVIEW</option>
-            <option value="BLOCKED">BLOCKED</option>
-            <option value="FAILED">FAILED</option>
+            <option value="">All Statuses</option>
+            <option value="SETTLED">Success (SETTLED)</option>
+            <option value="AUTHORISED">Pending (AUTHORISED)</option>
+            <option value="SUBMITTED">Pending (SUBMITTED)</option>
+            <option value="SCREENING">Pending (SCREENING)</option>
+            <option value="REVIEW">Review Required</option>
+            <option value="FAILED">Failed (FAILED)</option>
+            <option value="BLOCKED">Failed (BLOCKED)</option>
+            <option value="REVERSED">Reversed</option>
           </select>
 
+          {/* Rail filter */}
           <select
             value={railFilter}
-            onChange={(e) => setRailFilter(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none"
+            onChange={(e) => {
+              setRailFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 font-medium focus:outline-none focus:border-blue-600"
           >
-            <option value="">All Rails</option>
+            <option value="">All Networks</option>
             <option value="UPI">UPI</option>
             <option value="NEFT">NEFT</option>
             <option value="SWIFT">SWIFT</option>
             <option value="CARD">CARD</option>
           </select>
+
+          {/* Date filter */}
+          <input
+            type="date"
+            value={dateFilter}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 font-medium focus:outline-none focus:border-blue-600"
+          />
+          {dateFilter && (
+            <button
+              onClick={() => setDateFilter('')}
+              className="text-xs text-slate-400 hover:text-slate-600"
+            >
+              Clear date
+            </button>
+          )}
         </div>
 
-        <span className="text-xs font-mono text-slate-400">
-          Showing {payments.length} payments
+        <span className="text-xs font-mono text-slate-500 font-medium">
+          Showing {filteredPayments.length} of {payments.length} transactions
         </span>
       </div>
 
       {/* Table */}
-      <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+      <div className="fintech-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-900/80 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
               <tr>
-                <th className="py-3.5 px-4">Reference</th>
+                <th className="py-3.5 px-4">Transaction ID</th>
+                <th className="py-3.5 px-4">Date & Time</th>
+                <th className="py-3.5 px-4">Customer / Merchant</th>
                 <th className="py-3.5 px-4">Amount</th>
-                <th className="py-3.5 px-4">Rail</th>
-                <th className="py-3.5 px-4">State</th>
-                <th className="py-3.5 px-4">Customer</th>
-                <th className="py-3.5 px-4">Created</th>
-                <th className="py-3.5 px-4 text-right">Action</th>
+                <th className="py-3.5 px-4">Payment Method</th>
+                <th className="py-3.5 px-4">Network</th>
+                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono">
+            <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-500">
-                    Loading payments...
+                  <td colSpan={8} className="text-center py-12 text-slate-400 font-medium">
+                    Loading transactions ledger...
                   </td>
                 </tr>
-              ) : payments.length === 0 ? (
+              ) : paginatedPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-500">
-                    No payments found matching filter criteria.
+                  <td colSpan={8} className="text-center py-12 text-slate-500">
+                    No transactions found matching your criteria.
                   </td>
                 </tr>
               ) : (
-                payments.map((p) => (
+                paginatedPayments.map((p) => (
                   <tr
                     key={p.id}
                     onClick={() => openDetailDrawer(p)}
-                    className="hover:bg-slate-800/40 cursor-pointer transition"
+                    className="hover:bg-blue-50/30 cursor-pointer transition"
                   >
-                    <td className="py-3 px-4 font-semibold text-slate-100 flex items-center gap-2">
-                      <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>{p.reference}</span>
+                    <td className="py-3 px-4 font-mono font-semibold text-[#102A56] flex items-center gap-2">
+                      <CreditCard className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span className="truncate max-w-[130px]" title={p.reference || p.id}>
+                        {p.reference || p.id.slice(0, 12)}
+                      </span>
                     </td>
-                    <td className="py-3 px-4 text-white font-bold">
-                      {(p.amount_minor / 100).toLocaleString('en-IN', {
+                    <td className="py-3 px-4 text-slate-500 font-mono text-[11px] whitespace-nowrap">
+                      {new Date(p.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                    </td>
+                    <td className="py-3 px-4 text-slate-700 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <User className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate max-w-[140px]" title={p.customer_id || 'Retail Customer'}>
+                          {p.customer_id || 'Retail Customer'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 font-bold text-[#102A56] font-mono">
+                      ₹{(p.amount_minor / 100).toLocaleString('en-IN', {
                         minimumFractionDigits: 2,
                       })}{' '}
-                      <span className="text-slate-400 text-[10px]">{p.currency}</span>
+                      <span className="text-slate-400 text-[10px] font-normal">{p.currency}</span>
                     </td>
-                    <td className="py-3 px-4 text-slate-300 font-sans font-medium">{p.rail || 'AUTO'}</td>
+                    <td className="py-3 px-4 text-slate-600 font-medium">
+                      {p.rail === 'UPI' ? 'Virtual Payment (VPA)' : p.rail === 'CARD' ? 'Credit/Debit Card' : p.rail === 'NEFT' ? 'National Electronic Fund' : 'SWIFT Wire'}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-slate-100 text-slate-700 border border-slate-200">
+                        {p.rail || 'AUTO'}
+                      </span>
+                    </td>
                     <td className="py-3 px-4">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getBadgeColor(
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${getBadgeStyle(
                           p.state
                         )}`}
                       >
-                        {p.state}
+                        {p.state === 'SETTLED' ? 'Success' : p.state === 'FAILED' ? 'Failed' : p.state}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-slate-400 font-sans truncate max-w-xs">
-                      {p.customer_id?.slice(0, 8)}...
-                    </td>
-                    <td className="py-3 px-4 text-slate-500 text-[11px]">
-                      {new Date(p.created_at).toLocaleString()}
-                    </td>
                     <td className="py-3 px-4 text-right">
-                      <ChevronRight className="w-4 h-4 text-slate-500 inline-block" />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDetailDrawer(p);
+                        }}
+                        className="px-2 py-1 rounded bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 text-xs font-semibold border border-slate-200 transition"
+                      >
+                        Details
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -234,21 +343,46 @@ export const Payments: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        {filteredPayments.length > itemsPerPage && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/50">
+            <span className="text-xs text-slate-500">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ── Payment Detail Drawer ── */}
+      {/* ── Transaction Detail Drawer ── */}
       {selectedPayment && (
-        <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-slate-900/95 border-l border-slate-800 shadow-2xl p-6 overflow-y-auto z-50 backdrop-blur-xl animate-in slide-in-from-right duration-200">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white border-l border-slate-200 shadow-2xl p-6 overflow-y-auto z-50 animate-in slide-in-from-right duration-200">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-200">
             <div>
-              <span className="text-xs font-mono text-indigo-400 font-semibold uppercase tracking-wider">
-                Transaction Detail
+              <span className="text-xs font-mono text-blue-600 font-semibold uppercase tracking-wider">
+                Transaction Audit Profile
               </span>
-              <h2 className="text-lg font-bold text-white">{selectedPayment.reference}</h2>
+              <h2 className="text-lg font-bold text-[#102A56]">{selectedPayment.reference}</h2>
             </div>
             <button
               onClick={() => setSelectedPayment(null)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -256,18 +390,18 @@ export const Payments: React.FC = () => {
 
           <div className="mt-6 space-y-6">
             {/* Amount & State Card */}
-            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
-                <span className="text-xs text-slate-500">Gross Settlement Amount</span>
-                <div className="text-2xl font-bold text-white font-mono mt-0.5">
-                  {(selectedPayment.amount_minor / 100).toLocaleString('en-IN', {
+                <span className="text-xs text-slate-500 font-medium">Gross Settlement Amount</span>
+                <div className="text-2xl font-extrabold text-[#102A56] font-mono mt-0.5">
+                  ₹{(selectedPayment.amount_minor / 100).toLocaleString('en-IN', {
                     minimumFractionDigits: 2,
                   })}{' '}
-                  <span className="text-indigo-400 text-sm">{selectedPayment.currency}</span>
+                  <span className="text-blue-600 text-sm font-semibold">{selectedPayment.currency}</span>
                 </div>
               </div>
               <span
-                className={`px-3 py-1 rounded-full text-xs font-bold font-mono border ${getBadgeColor(
+                className={`px-3 py-1 rounded-full text-xs font-bold border ${getBadgeStyle(
                   selectedPayment.state
                 )}`}
               >
@@ -275,25 +409,45 @@ export const Payments: React.FC = () => {
               </span>
             </div>
 
-            {/* State Machine Timeline */}
+            {/* Validation & Idempotency Metadata */}
+            <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2 text-xs">
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500">Internal UUID:</span>
+                <span className="font-mono text-[#102A56] select-all font-semibold">{selectedPayment.id}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500">Payment Network Rail:</span>
+                <span className="font-bold text-[#102A56]">{selectedPayment.rail || 'AUTO ROUTED'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-500">Customer Identifier:</span>
+                <span className="font-mono text-slate-700">{selectedPayment.customer_id || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500">Timestamp:</span>
+                <span className="text-slate-700 font-mono">{new Date(selectedPayment.created_at).toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* State Machine Transition Audit */}
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#102A56] mb-3 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-blue-600" />
                 <span>State Machine Transition Audit</span>
               </h3>
-              <div className="border-l-2 border-slate-800 ml-3 space-y-4 py-1">
+              <div className="border-l-2 border-blue-200 ml-3 space-y-4 py-1">
                 {(selectedPayment.state_history || [
                   { to_state: selectedPayment.state, actor: 'SYSTEM', reason: 'Initial submission' },
                 ]).map((hist: any, idx: number) => (
                   <div key={idx} className="relative pl-5">
-                    <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-slate-900 border-2 border-indigo-500 flex items-center justify-center">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                    <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-white border-2 border-blue-600 flex items-center justify-center">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
                     </span>
-                    <div className="text-xs font-semibold text-white font-mono">{hist.to_state}</div>
-                    <div className="text-[11px] text-slate-400 font-sans mt-0.5">
-                      {hist.reason || 'Normal transition'}
+                    <div className="text-xs font-bold text-[#102A56] font-mono">{hist.to_state}</div>
+                    <div className="text-[11px] text-slate-600 font-sans mt-0.5">
+                      {hist.reason || 'State verified & processed'}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
                       Actor: {hist.actor || 'ORCHESTRATOR'}
                     </div>
                   </div>
@@ -301,12 +455,12 @@ export const Payments: React.FC = () => {
               </div>
             </div>
 
-            {/* Raw vs Canonical Message Preview */}
+            {/* Canonical ISO 20022 Representation */}
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                Canonical ISO 20022 Representation
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#102A56] mb-2">
+                Canonical ISO 20022 Representation (JSON)
               </h3>
-              <pre className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 overflow-x-auto max-h-48">
+              <pre className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700 overflow-x-auto max-h-48">
                 {JSON.stringify(
                   {
                     id: selectedPayment.id,
