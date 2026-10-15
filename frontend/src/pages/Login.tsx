@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Sparkles, Shield, User, Lock, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Shield, User, Lock, ArrowRight, CheckCircle2, PlayCircle } from 'lucide-react';
 
-export const Login: React.FC = () => {
+interface LoginProps {
+  onReplayIntro?: () => void;
+}
+
+export const Login: React.FC<LoginProps> = ({ onReplayIntro }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('admin@paynexus.io');
   const [password, setPassword] = useState('Demo@PayNexus2026!');
@@ -55,15 +59,35 @@ export const Login: React.FC = () => {
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
+      {/* Replay Intro Video Button at top right */}
+      {onReplayIntro && (
+        <div className="absolute top-6 right-6 z-20">
+          <button
+            type="button"
+            onClick={onReplayIntro}
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800 border border-slate-800 rounded-full px-3 py-1.5 transition backdrop-blur-md shadow-sm"
+          >
+            <PlayCircle className="w-4 h-4 text-emerald-400" />
+            <span>Watch Intro Video</span>
+          </button>
+        </div>
+      )}
+
       <div className="w-full max-w-md z-10 space-y-6">
         {/* Logo and title */}
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-emerald-400 items-center justify-center shadow-xl shadow-indigo-500/25 mb-2">
-            <Sparkles className="w-6 h-6 text-white" />
+          <div className="inline-flex items-center justify-center mb-1">
+            <img
+              src="/paynexus-logo.png"
+              alt="PayNexus Logo"
+              className="w-24 h-24 object-contain rounded-2xl shadow-2xl shadow-blue-500/20 drop-shadow-lg"
+            />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">PayNexus Platform</h1>
-          <p className="text-sm text-slate-400">
-            Next-Gen Multi-Rail Payments Modernisation & Orchestration
+          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent">
+            PayNexus Platform
+          </h1>
+          <p className="text-sm font-medium text-emerald-400/90 tracking-wide">
+            Powering the Future of Payments
           </p>
         </div>
 

@@ -13,6 +13,7 @@ import { RailsChaos } from './pages/RailsChaos';
 import { AuditExplorer } from './pages/AuditExplorer';
 import { Admin } from './pages/Admin';
 import { DemoRunner } from './pages/DemoRunner';
+import { IntroVideo } from './components/IntroVideo';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('paynexus_token');
@@ -23,10 +24,25 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const App: React.FC = () => {
+  const [showIntro, setShowIntro] = React.useState<boolean>(() => {
+    // Check if user has already seen intro in this session or window
+    const watched = sessionStorage.getItem('paynexus_intro_watched');
+    return watched !== 'true';
+  });
+
+  const handleVideoComplete = () => {
+    sessionStorage.setItem('paynexus_intro_watched', 'true');
+    setShowIntro(false);
+  };
+
+  if (showIntro) {
+    return <IntroVideo onComplete={handleVideoComplete} />;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login onReplayIntro={() => setShowIntro(true)} />} />
         <Route
           path="/"
           element={

@@ -48,17 +48,32 @@ graph TD
 - Docker Engine 24+ & Docker Compose v2.20+
 - Git
 
-### 1-Command Startup
+### Option A: Local Python & Node Startup (Zero Docker Required)
 ```bash
-# Clone and start all services, database migrations, and synthetic seed data
+# 1. Backend Setup & Seed
+cd backend
+python -m pip install -r requirements.txt
+python -m pip install aiosqlite fakeredis greenlet email-validator faker sse-starlette python-jose argon2-cffi
+python scripts/seed.py
+uvicorn app.main:app --port 8000 --host 127.0.0.1 --reload
+
+# 2. Frontend Setup (in a separate terminal)
+cd ../frontend
+npm install
+npm run dev -- --port 3000
+```
+
+### Option B: Docker Compose Startup
+```bash
+# Clone and start all services, mock rails, and databases
 docker compose up --build -d
 ```
 
 ### Access URLs
 - **Web UI**: [http://localhost:3000](http://localhost:3000)
-- **FastAPI OpenAPI Interactive Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Prometheus Metrics**: [http://localhost:9090](http://localhost:9090)
-- **Grafana Observability Dashboard**: [http://localhost:3001](http://localhost:3001) (User: `admin`, Password: `admin_change_me`)
+- **FastAPI Interactive OpenAPI Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Liveness Probe**: [http://localhost:8000/healthz](http://localhost:8000/healthz)
+- **Prometheus Metrics**: [http://localhost:8000/metrics](http://localhost:8000/metrics)
 
 ---
 
@@ -113,6 +128,14 @@ docker compose up --build -d
 2. Click **Verify Chain Integrity**. A green banner verifies all sequential records match their forward SHA-256 hash links.
 3. Click **Tamper Demo**. This deliberately mutates a database row.
 4. Re-run **Verify Chain Integrity**. An alert immediately pinpoints the exact corrupted sequence number.
+
+### Scenario 7: Intelligent Payment Investigation Assistant (Novelty AI Feature)
+1. Go to the **Executive Dashboard** (`/`).
+2. In the **Payment Investigation Assistant** panel at the bottom:
+   - Click the preset: **"Which simulated payment rail has the highest failure rate?"**
+   - Click **Investigate**. Observe deterministic diagnostic evidence, health stats, circuit breaker states, and actionable recommendations.
+   - Enter a query for any payment reference (e.g. `Why is transaction PNX-20261015-xxx in review?`).
+   - The assistant performs an authoritative database lookup, extracts exact compliance findings, provides evidence, and issues intelligent retry recommendations respecting state invariants.
 
 ---
 
