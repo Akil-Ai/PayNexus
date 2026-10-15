@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../lib/api';
 import {
   CreditCard,
@@ -370,116 +371,134 @@ export const Payments: React.FC = () => {
         )}
       </div>
 
-      {/* ── Transaction Detail Drawer ── */}
-      {selectedPayment && (
-        <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white border-l border-slate-200 shadow-2xl p-6 overflow-y-auto z-50 animate-in slide-in-from-right duration-200">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-200">
-            <div>
-              <span className="text-xs font-mono text-blue-600 font-semibold uppercase tracking-wider">
-                Transaction Audit Profile
-              </span>
-              <h2 className="text-lg font-bold text-[#102A56]">{selectedPayment.reference}</h2>
-            </div>
-            <button
+      {/* ── Transaction Detail Drawer (Animated Slide-in) ── */}
+      <AnimatePresence>
+        {selectedPayment && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
               onClick={() => setSelectedPayment(null)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+              className="fixed inset-0 bg-slate-900/30 backdrop-blur-2xs z-40"
+            />
+            <motion.div
+              initial={{ x: '100%', opacity: 0.8 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '100%', opacity: 0.8 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="fixed inset-y-0 right-0 w-full max-w-xl bg-white border-l border-slate-200 shadow-2xl p-6 overflow-y-auto z-50"
             >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="mt-6 space-y-6">
-            {/* Amount & State Card */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs text-slate-500 font-medium">Gross Settlement Amount</span>
-                <div className="text-2xl font-extrabold text-[#102A56] font-mono mt-0.5">
-                  ₹{(selectedPayment.amount_minor / 100).toLocaleString('en-IN', {
-                    minimumFractionDigits: 2,
-                  })}{' '}
-                  <span className="text-blue-600 text-sm font-semibold">{selectedPayment.currency}</span>
+              <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+                <div>
+                  <span className="text-xs font-mono text-blue-600 font-semibold uppercase tracking-wider">
+                    Transaction Audit Profile
+                  </span>
+                  <h2 className="text-lg font-bold text-[#102A56]">{selectedPayment.reference}</h2>
                 </div>
+                <button
+                  onClick={() => setSelectedPayment(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-bold border ${getBadgeStyle(
-                  selectedPayment.state
-                )}`}
-              >
-                {selectedPayment.state}
-              </span>
-            </div>
 
-            {/* Validation & Idempotency Metadata */}
-            <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2 text-xs">
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Internal UUID:</span>
-                <span className="font-mono text-[#102A56] select-all font-semibold">{selectedPayment.id}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Payment Network Rail:</span>
-                <span className="font-bold text-[#102A56]">{selectedPayment.rail || 'AUTO ROUTED'}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Customer Identifier:</span>
-                <span className="font-mono text-slate-700">{selectedPayment.customer_id || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-slate-500">Timestamp:</span>
-                <span className="text-slate-700 font-mono">{new Date(selectedPayment.created_at).toLocaleString()}</span>
-              </div>
-            </div>
-
-            {/* State Machine Transition Audit */}
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#102A56] mb-3 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-blue-600" />
-                <span>State Machine Transition Audit</span>
-              </h3>
-              <div className="border-l-2 border-blue-200 ml-3 space-y-4 py-1">
-                {(selectedPayment.state_history || [
-                  { to_state: selectedPayment.state, actor: 'SYSTEM', reason: 'Initial submission' },
-                ]).map((hist: any, idx: number) => (
-                  <div key={idx} className="relative pl-5">
-                    <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-white border-2 border-blue-600 flex items-center justify-center">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                    </span>
-                    <div className="text-xs font-bold text-[#102A56] font-mono">{hist.to_state}</div>
-                    <div className="text-[11px] text-slate-600 font-sans mt-0.5">
-                      {hist.reason || 'State verified & processed'}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                      Actor: {hist.actor || 'ORCHESTRATOR'}
+              <div className="mt-6 space-y-6">
+                {/* Amount & State Card */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-slate-500 font-medium">Gross Settlement Amount</span>
+                    <div className="text-2xl font-extrabold text-[#102A56] font-mono mt-0.5">
+                      ₹{(selectedPayment.amount_minor / 100).toLocaleString('en-IN', {
+                        minimumFractionDigits: 2,
+                      })}{' '}
+                      <span className="text-blue-600 text-sm font-semibold">{selectedPayment.currency}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold border ${getBadgeStyle(
+                      selectedPayment.state
+                    )}`}
+                  >
+                    {selectedPayment.state}
+                  </span>
+                </div>
 
-            {/* Canonical ISO 20022 Representation */}
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#102A56] mb-2">
-                Canonical ISO 20022 Representation (JSON)
-              </h3>
-              <pre className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700 overflow-x-auto max-h-48">
-                {JSON.stringify(
-                  {
-                    id: selectedPayment.id,
-                    reference: selectedPayment.reference,
-                    end_to_end_id: selectedPayment.end_to_end_id || selectedPayment.reference,
-                    amount_minor: selectedPayment.amount_minor,
-                    currency: selectedPayment.currency,
-                    rail: selectedPayment.rail,
-                    state: selectedPayment.state,
-                    customer_id: selectedPayment.customer_id,
-                  },
-                  null,
-                  2
-                )}
-              </pre>
-            </div>
-          </div>
-        </div>
-      )}
+                {/* Validation & Idempotency Metadata */}
+                <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2 text-xs">
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Internal UUID:</span>
+                    <span className="font-mono text-[#102A56] select-all font-semibold">{selectedPayment.id}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Payment Network Rail:</span>
+                    <span className="font-bold text-[#102A56]">{selectedPayment.rail || 'AUTO ROUTED'}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Customer Identifier:</span>
+                    <span className="font-mono text-slate-700">{selectedPayment.customer_id || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-500">Timestamp:</span>
+                    <span className="text-slate-700 font-mono">{new Date(selectedPayment.created_at).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* State Machine Transition Audit */}
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#102A56] mb-3 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-blue-600" />
+                    <span>State Machine Transition Audit</span>
+                  </h3>
+                  <div className="border-l-2 border-blue-200 ml-3 space-y-4 py-1">
+                    {(selectedPayment.state_history || [
+                      { to_state: selectedPayment.state, actor: 'SYSTEM', reason: 'Initial submission' },
+                    ]).map((hist: any, idx: number) => (
+                      <div key={idx} className="relative pl-5">
+                        <span className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-white border-2 border-blue-600 flex items-center justify-center">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                        </span>
+                        <div className="text-xs font-bold text-[#102A56] font-mono">{hist.to_state}</div>
+                        <div className="text-[11px] text-slate-600 font-sans mt-0.5">
+                          {hist.reason || 'State verified & processed'}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          Actor: {hist.actor || 'ORCHESTRATOR'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Canonical ISO 20022 Representation */}
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#102A56] mb-2">
+                    Canonical ISO 20022 Representation (JSON)
+                  </h3>
+                  <pre className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700 overflow-x-auto max-h-48">
+                    {JSON.stringify(
+                      {
+                        id: selectedPayment.id,
+                        reference: selectedPayment.reference,
+                        end_to_end_id: selectedPayment.end_to_end_id || selectedPayment.reference,
+                        amount_minor: selectedPayment.amount_minor,
+                        currency: selectedPayment.currency,
+                        rail: selectedPayment.rail,
+                        state: selectedPayment.state,
+                        customer_id: selectedPayment.customer_id,
+                      },
+                      null,
+                      2
+                    )}
+                  </pre>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

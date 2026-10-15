@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../lib/api';
 import {
   GitCompare,
@@ -307,125 +308,148 @@ export const Reconciliation: React.FC = () => {
           </span>
         </div>
 
-        {/* TAB 1: Exception Queue */}
-        {activeTab === 'EXCEPTIONS' && (
-          <div className="space-y-3">
-            {exceptions.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-500 font-mono bg-slate-50 rounded-xl border border-slate-100">
-                Zero open exceptions in this reconciliation run! All records matched internal ledger.
-              </div>
-            ) : (
-              exceptions.map((exc) => (
-                <div
-                  key={exc.id}
-                  className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-red-100 text-red-700 border border-red-200">
-                        {exc.exception_type}
-                      </span>
-                      <span className="text-xs font-bold text-[#102A56]">{exc.description}</span>
-                    </div>
-                    <span
-                      className={`text-xs px-2.5 py-0.5 rounded-full font-bold font-mono ${
-                        exc.status === 'RESOLVED'
-                          ? 'bg-emerald-100 text-[#10A66A]'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}
-                    >
-                      {exc.status}
-                    </span>
-                  </div>
-
-                  {/* Side-by-Side Comparison: Internal vs Provider Record */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
-                    <div className="p-3 rounded-lg bg-white border border-slate-200">
-                      <span className="text-slate-500 font-bold block mb-1">PayNexus Internal Ledger Record:</span>
-                      <pre className="text-[11px] text-slate-700 overflow-x-auto">
-                        {JSON.stringify(exc.internal_record || { status: 'Missing internally', note: 'Not logged in primary db' }, null, 2)}
-                      </pre>
-                    </div>
-                    <div className="p-3 rounded-lg bg-white border border-slate-200">
-                      <span className="text-slate-500 font-bold block mb-1">Payment Provider (Rail) Statement:</span>
-                      <pre className="text-[11px] text-slate-700 overflow-x-auto">
-                        {JSON.stringify(exc.rail_record || { status: 'Missing at provider', note: 'Not found in bank statement' }, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-
-                  {exc.status !== 'RESOLVED' && (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 border-t border-slate-200 gap-2">
-                      <span className="text-xs text-blue-700 font-medium">
-                        Suggested Resolution: {exc.suggested_action || 'Review transaction reference and manual force-settle'}
-                      </span>
+        {/* Tab content wrapped in AnimatePresence for smooth transitions */}
+        <AnimatePresence mode="wait">
+          {activeTab === 'EXCEPTIONS' && (
+            <motion.div
+              key="exceptions-tab"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-3"
+            >
+              {exceptions.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-500 font-mono bg-slate-50 rounded-xl border border-slate-100">
+                  Zero open exceptions in this reconciliation run! All records matched internal ledger.
+                </div>
+              ) : (
+                exceptions.map((exc) => (
+                  <div
+                    key={exc.id}
+                    className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleResolveException(exc.id, 'FORCE_SETTLE')}
-                          className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition"
-                        >
-                          Review & Force Settle
-                        </button>
-                        <button
-                          onClick={() => handleResolveException(exc.id, 'RETRY_ELIGIBLE')}
-                          className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition"
-                        >
-                          Retry Eligible Transaction
-                        </button>
-                        <button
-                          onClick={() => handleResolveException(exc.id, 'DISMISS')}
-                          className="px-3 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold transition"
-                        >
-                          Dismiss
-                        </button>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-red-100 text-red-700 border border-red-200">
+                          {exc.exception_type}
+                        </span>
+                        <span className="text-xs font-bold text-[#102A56]">{exc.description}</span>
+                      </div>
+                      <span
+                        className={`text-xs px-2.5 py-0.5 rounded-full font-bold font-mono ${
+                          exc.status === 'RESOLVED'
+                            ? 'bg-emerald-100 text-[#10A66A]'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {exc.status}
+                      </span>
+                    </div>
+
+                    {/* Side-by-Side Comparison: Internal vs Provider Record */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+                      <div className="p-3 rounded-lg bg-white border border-slate-200">
+                        <span className="text-slate-500 font-bold block mb-1">PayNexus Internal Ledger Record:</span>
+                        <pre className="text-[11px] text-slate-700 overflow-x-auto">
+                          {JSON.stringify(exc.internal_record || { status: 'Missing internally', note: 'Not logged in primary db' }, null, 2)}
+                        </pre>
+                      </div>
+                      <div className="p-3 rounded-lg bg-white border border-slate-200">
+                        <span className="text-slate-500 font-bold block mb-1">Payment Provider (Rail) Statement:</span>
+                        <pre className="text-[11px] text-slate-700 overflow-x-auto">
+                          {JSON.stringify(exc.rail_record || { status: 'Missing at provider', note: 'Not found in bank statement' }, null, 2)}
+                        </pre>
                       </div>
                     </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        )}
 
-        {/* TAB 2: Matched Records */}
-        {activeTab === 'MATCHED' && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase">
-                <tr>
-                  <th className="py-2.5 px-4">Internal Reference</th>
-                  <th className="py-2.5 px-4">Provider Ref</th>
-                  <th className="py-2.5 px-4">Amount</th>
-                  <th className="py-2.5 px-4">Timestamp</th>
-                  <th className="py-2.5 px-4">Matching Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {matchedRecordsMock.map((m, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50">
-                    <td className="py-2.5 px-4 font-bold text-[#102A56]">{m.ref}</td>
-                    <td className="py-2.5 px-4 text-slate-600">{m.railRef}</td>
-                    <td className="py-2.5 px-4 font-bold text-[#10A66A]">{m.amount}</td>
-                    <td className="py-2.5 px-4 text-slate-500">{m.time}</td>
-                    <td className="py-2.5 px-4">
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-[#10A66A] font-bold text-[10px]">
-                        Exact Match
-                      </span>
-                    </td>
+                    {exc.status !== 'RESOLVED' && (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 border-t border-slate-200 gap-2">
+                        <span className="text-xs text-blue-700 font-medium">
+                          Suggested Resolution: {exc.suggested_action || 'Review transaction reference and manual force-settle'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleResolveException(exc.id, 'FORCE_SETTLE')}
+                            className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition"
+                          >
+                            Review & Force Settle
+                          </button>
+                          <button
+                            onClick={() => handleResolveException(exc.id, 'RETRY_ELIGIBLE')}
+                            className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition"
+                          >
+                            Retry Eligible Transaction
+                          </button>
+                          <button
+                            onClick={() => handleResolveException(exc.id, 'DISMISS')}
+                            className="px-3 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold transition"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </motion.div>
+          )}
+
+          {/* TAB 2: Matched Records */}
+          {activeTab === 'MATCHED' && (
+            <motion.div
+              key="matched-tab"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-x-auto"
+            >
+              <table className="w-full text-left text-xs font-mono">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase">
+                  <tr>
+                    <th className="py-2.5 px-4">Internal Reference</th>
+                    <th className="py-2.5 px-4">Provider Ref</th>
+                    <th className="py-2.5 px-4">Amount</th>
+                    <th className="py-2.5 px-4">Timestamp</th>
+                    <th className="py-2.5 px-4">Matching Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {matchedRecordsMock.map((m, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50">
+                      <td className="py-2.5 px-4 font-bold text-[#102A56]">{m.ref}</td>
+                      <td className="py-2.5 px-4 text-slate-600">{m.railRef}</td>
+                      <td className="py-2.5 px-4 font-bold text-[#10A66A]">{m.amount}</td>
+                      <td className="py-2.5 px-4 text-slate-500">{m.time}</td>
+                      <td className="py-2.5 px-4">
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-[#10A66A] font-bold text-[10px]">
+                          Exact Match
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </motion.div>
+          )}
 
-        {/* TAB 3: Unmatched Records */}
-        {activeTab === 'UNMATCHED' && (
-          <div className="p-6 text-center text-xs text-slate-500 font-mono bg-slate-50 rounded-xl border border-slate-200">
-            <p className="font-bold text-[#102A56] mb-1">All unmatched transactions are routed to the Exception Queue.</p>
-            <p className="text-slate-500">2 pending settlement items currently under investigation.</p>
-          </div>
-        )}
+          {/* TAB 3: Unmatched Records */}
+          {activeTab === 'UNMATCHED' && (
+            <motion.div
+              key="unmatched-tab"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              className="p-6 text-center text-xs text-slate-500 font-mono bg-slate-50 rounded-xl border border-slate-200"
+            >
+              <p className="font-bold text-[#102A56] mb-1">All unmatched transactions are routed to the Exception Queue.</p>
+              <p className="text-slate-500">2 pending settlement items currently under investigation.</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { api } from '../lib/api';
 import {
   TrendingUp,
@@ -150,9 +151,14 @@ export const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs"
+      >
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold tracking-tight text-[#102A56]">Executive Payment Operations</h1>
@@ -171,18 +177,24 @@ export const Dashboard: React.FC = () => {
           </div>
           <button
             onClick={fetchMetrics}
-            className="p-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 transition shadow-sm hover:text-[#102A56]"
+            className="p-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 transition shadow-2xs hover:text-[#102A56]"
             title="Refresh metrics"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* ── 4 Primary Dashboard Summary Cards ── */}
+      {/* ── 4 Primary Dashboard Summary Cards (Staggered Animation) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Total Transactions */}
-        <div className="fintech-card p-5 relative overflow-hidden group">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.04 }}
+          whileHover={{ y: -3, transition: { duration: 0.15 } }}
+          className="fintech-card p-5 relative overflow-hidden group"
+        >
           <div className="flex items-center justify-between text-slate-500 mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">Total Transactions</span>
             <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
@@ -199,10 +211,16 @@ export const Dashboard: React.FC = () => {
             </span>
             <span className="text-slate-400 font-mono text-[11px]">Vol: ₹{(kpis.total_value_minor / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
-        </div>
+        </motion.div>
 
         {/* 2. Successful Payments */}
-        <div className="fintech-card p-5 relative overflow-hidden group">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.08 }}
+          whileHover={{ y: -3, transition: { duration: 0.15 } }}
+          className="fintech-card p-5 relative overflow-hidden group"
+        >
           <div className="flex items-center justify-between text-slate-500 mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">Successful Payments</span>
             <div className="p-2.5 rounded-xl bg-emerald-50 text-[#10A66A] border border-emerald-100">
@@ -216,10 +234,16 @@ export const Dashboard: React.FC = () => {
             <span className="text-slate-500 font-medium">Settled & Authorised</span>
             <span className="text-slate-400 font-mono text-[11px]">Avg: {kpis.avg_settlement_seconds}s</span>
           </div>
-        </div>
+        </motion.div>
 
         {/* 3. Pending Payments */}
-        <div className="fintech-card p-5 relative overflow-hidden group">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.12 }}
+          whileHover={{ y: -3, transition: { duration: 0.15 } }}
+          className="fintech-card p-5 relative overflow-hidden group"
+        >
           <div className="flex items-center justify-between text-slate-500 mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">Pending Payments</span>
             <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
@@ -233,10 +257,16 @@ export const Dashboard: React.FC = () => {
             <span className="text-slate-500 font-medium">In transit / screening</span>
             <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-[10px] font-bold">Active</span>
           </div>
-        </div>
+        </motion.div>
 
         {/* 4. Failed Payments */}
-        <div className="fintech-card p-5 relative overflow-hidden group">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.16 }}
+          whileHover={{ y: -3, transition: { duration: 0.15 } }}
+          className="fintech-card p-5 relative overflow-hidden group"
+        >
           <div className="flex items-center justify-between text-slate-500 mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">Failed / Blocked</span>
             <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-100">
@@ -250,7 +280,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-red-600 font-medium">{compliance_summary.sanctions_blocked} sanctions blocked</span>
             <span className="text-slate-400 font-mono text-[11px]">₹{(kpis.fraud_blocked_value_minor / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* ── Charts: Payment Volume Over Time & Status Distribution Donut ── */}

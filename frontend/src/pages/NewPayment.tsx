@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../lib/api';
 import {
   PlusCircle,
@@ -189,14 +190,16 @@ export const NewPayment: React.FC = () => {
           </span>
         </div>
 
-        {/* Pipeline steps cards with connected indicators */}
+        {/* Pipeline steps cards with connected indicators and smooth active animation */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 pt-2">
           {pipelineSteps.map((step) => {
             const isCompleted = workflowStep > step.num;
             const isCurrent = workflowStep === step.num;
             return (
-              <div
+              <motion.div
                 key={step.num}
+                animate={isCurrent ? { scale: [1, 1.04, 1] } : { scale: 1 }}
+                transition={isCurrent ? { repeat: Infinity, duration: 1.5 } : { duration: 0.2 }}
                 className={`p-3 rounded-xl border transition flex flex-col justify-between ${
                   isCurrent
                     ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 shadow-sm'
@@ -227,7 +230,7 @@ export const NewPayment: React.FC = () => {
                   </div>
                 </div>
                 <div className="text-[10px] text-slate-500 mt-2 line-clamp-1">{step.desc}</div>
-              </div>
+              </motion.div>
             );
           })}
         </div>

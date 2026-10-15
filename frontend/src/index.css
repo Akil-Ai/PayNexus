@@ -32,12 +32,18 @@ code, pre {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Premium Fintech Card utilities */
+/* Premium Fintech Card utilities with smooth transition */
 .fintech-card {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px 0 rgba(16, 42, 86, 0.05), 0 1px 2px -1px rgba(16, 42, 86, 0.05);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.fintech-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 6px 16px -2px rgba(16, 42, 86, 0.06), 0 2px 4px -2px rgba(16, 42, 86, 0.04);
 }
 
 .fintech-card-hover {
@@ -52,11 +58,12 @@ code, pre {
 
 /* Glassmorphism utilities for light theme */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   box-shadow: 0 4px 6px -1px rgba(16, 42, 86, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .glass-panel-hover {
@@ -68,6 +75,20 @@ code, pre {
   border-color: #2563EB;
   transform: translateY(-2px);
   box-shadow: 0 10px 20px -3px rgba(37, 99, 235, 0.1);
+}
+
+/* Button interactive press states */
+button, .btn-action {
+  transition: transform 0.1s cubic-bezier(0.2, 0, 0.2, 1), background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+button:active:not(:disabled), .btn-action:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Row hover highlight for tables */
+tr {
+  transition: background-color 0.15s ease;
 }
 
 /* Custom sleek scrollbar for light theme */
@@ -87,4 +108,14 @@ code, pre {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
