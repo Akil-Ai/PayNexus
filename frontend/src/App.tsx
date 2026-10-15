@@ -37,7 +37,14 @@ const AnimatedRoutes: React.FC<{ onReplayIntro: () => void }> = ({ onReplayIntro
   return (
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
-        <Route path="/login" element={<Login onReplayIntro={onReplayIntro} />} />
+        <Route
+          path="/login"
+          element={
+            <PageTransition>
+              <Login onReplayIntro={onReplayIntro} />
+            </PageTransition>
+          }
+        />
         <Route
           path="/"
           element={
