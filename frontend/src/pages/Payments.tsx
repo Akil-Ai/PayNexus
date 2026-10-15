@@ -32,7 +32,7 @@ export const Payments: React.FC = () => {
         rail: railFilter || undefined,
         limit: 50,
       });
-      setPayments(res);
+      setPayments(Array.isArray(res) ? res : res?.items || []);
     } catch (err) {
       console.error('Failed to fetch payments:', err);
     } finally {

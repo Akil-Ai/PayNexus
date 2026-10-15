@@ -78,15 +78,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* ── Sidebar ── */}
       <aside className="w-64 flex-shrink-0 flex flex-col border-r border-slate-800/80 bg-slate-900/60 backdrop-blur-md">
         {/* Brand */}
-        <div className="h-16 flex items-center px-6 border-b border-slate-800/80 gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
+        <div className="h-16 flex items-center px-4 border-b border-slate-800/80 gap-3">
+          <img
+            src="/paynexus-logo.png"
+            alt="PayNexus Logo"
+            className="w-10 h-10 object-contain rounded-lg shadow-md shadow-emerald-500/10"
+          />
           <div>
-            <span className="font-bold tracking-tight text-lg bg-gradient-to-r from-white via-slate-200 to-indigo-200 bg-clip-text text-transparent">
+            <span className="font-bold tracking-tight text-lg bg-gradient-to-r from-blue-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent">
               PayNexus
             </span>
-            <span className="block text-[10px] font-mono tracking-widest text-emerald-400 font-semibold uppercase">
+            <span className="block text-[9px] font-mono tracking-widest text-emerald-400 font-semibold uppercase">
               MODERNISATION
             </span>
           </div>
