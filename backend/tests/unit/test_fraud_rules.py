@@ -1,6 +1,6 @@
 """Unit tests for fraud rule engine — JSON-logic evaluation, scoring, and ALLOW/REVIEW/BLOCK."""
 import pytest
-from json_logic import jsonLogic
+from app.services.fraud_service import jsonLogic
 
 
 # ── Pure JSON-logic rule evaluation (no DB needed) ────────────────────────────

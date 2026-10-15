@@ -129,6 +129,7 @@ async def transition_payment_state(
     new_state: PaymentState,
     *,
     actor_id: Optional[str] = None,
+    actor: Optional[str] = None,
     actor_type: str = "SYSTEM",
     reason: Optional[str] = None,
     correlation_id: Optional[str] = None,
@@ -139,6 +140,7 @@ async def transition_payment_state(
     Raises StateMachineError for illegal transitions.
     Raises StaleDataError if version conflict detected.
     """
+    actor_id = actor_id or actor
     validate_transition(payment.state, new_state)
     cid = correlation_id or correlation_id_var.get() or str(uuid.uuid4())
     old_state = payment.state

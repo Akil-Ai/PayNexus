@@ -1,4 +1,5 @@
 """Redis client singleton and helper utilities."""
+import asyncio
 import json
 from typing import Any, Optional
 import redis.asyncio as redis_async

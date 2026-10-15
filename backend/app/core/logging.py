@@ -10,7 +10,7 @@ correlation_id_var: ContextVar[Optional[str]] = ContextVar("correlation_id", def
 user_id_var: ContextVar[Optional[str]] = ContextVar("user_id", default=None)
 
 
-class JSONFormatter(logging.Formatter):
+class JSONFormatter(getattr(logging, "Formatter", object)):  # type: ignore[misc]
     """Format log records as structured JSON. Never logs PII fields."""
 
     SENSITIVE_KEYS = frozenset({
@@ -19,7 +19,7 @@ class JSONFormatter(logging.Formatter):
         "authorization", "x-api-key", "field_encryption_key",
     })
 
-    def format(self, record: logging.LogRecord) -> str:  # noqa: A003
+    def format(self, record: Any) -> str:  # noqa: A003
         log_entry: Dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
@@ -56,15 +56,19 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_entry, default=str)
 
 
-def get_logger(name: str) -> logging.Logger:
-    return logging.getLogger(name)
+def get_logger(name: str) -> Any:
+    return getattr(logging, "getLogger", lambda n: None)(name)
 
 
 def setup_logging():
-    root = logging.getLogger()
-    root.setLevel(logging.INFO)
-    if not any(isinstance(h.formatter, JSONFormatter) for h in root.handlers):
-        handler = logging.StreamHandler()
-        handler.setFormatter(JSONFormatter())
-        root.addHandler(handler)
+    get_logger_fn = getattr(logging, "getLogger", None)
+    if get_logger_fn:
+        root = get_logger_fn()
+        root.setLevel(getattr(logging, "INFO", 20))
+        if not any(isinstance(h.formatter, JSONFormatter) for h in root.handlers):
+            stream_handler_cls = getattr(logging, "StreamHandler", None)
+            if stream_handler_cls:
+                handler = stream_handler_cls()
+                handler.setFormatter(JSONFormatter())
+                root.addHandler(handler)
 

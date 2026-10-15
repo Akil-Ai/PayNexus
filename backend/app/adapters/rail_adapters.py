@@ -2,7 +2,7 @@
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Optional, Any
+from typing import Optional, Any, Dict, Type
 
 import httpx
 
@@ -336,7 +336,7 @@ class CARDAdapter(BaseRailAdapter):
 
 
 # Rail registry
-RAIL_ADAPTERS = {
+RAIL_ADAPTERS: Dict[str, Type[BaseRailAdapter]] = {
     "UPI": UPIAdapter,
     "NEFT": NEFTAdapter,
     "SWIFT": SWIFTAdapter,

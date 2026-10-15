@@ -142,21 +142,21 @@ async def process_payment_orchestration(payment_id: str):
             return
 
         # 3c. Fraud Engine (JSON-Logic + ML score)
-        fraud_eval = await evaluate_fraud_rules(
+        fraud_decision = await evaluate_fraud_rules(
             db=db,
             payment=payment,
             customer=customer,
-            beneficiary=beneficiary
+            is_new_beneficiary=bool(beneficiary is None),
         )
-        if fraud_eval["decision"] == FraudDecision.BLOCK:
+        if fraud_decision == FraudDecision.BLOCK:
             await transition_payment_state(
                 db, payment, PaymentState.BLOCKED,
                 actor="FRAUD_ENGINE",
-                reason=f"Fraud risk blocked: {fraud_eval['reason']}"
+                reason="Fraud risk blocked: high risk score threshold exceeded"
             )
             await db.commit()
             return
-        elif fraud_eval["decision"] == FraudDecision.REVIEW:
+        elif fraud_decision == FraudDecision.REVIEW:
             appr = Approval(
                 id=str(uuid.uuid4()),
                 payment_id=payment.id,
@@ -169,7 +169,7 @@ async def process_payment_orchestration(payment_id: str):
             await transition_payment_state(
                 db, payment, PaymentState.REVIEW,
                 actor="FRAUD_ENGINE",
-                reason=f"Fraud review flagged: {fraud_eval['reason']}"
+                reason="Fraud review flagged: review threshold exceeded"
             )
             await db.commit()
             return

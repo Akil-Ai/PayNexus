@@ -60,6 +60,10 @@ class CircuitBreaker:
             return True
         return False
 
+    def reset(self):
+        """Reset the breaker to CLOSED state immediately."""
+        self.record_success()
+
     def record_success(self):
         self.failure_count = 0
         if self.state != CircuitState.CLOSED:

@@ -70,7 +70,7 @@ async def get_current_user(
 
 def require_roles(*roles: Any):
     """Dependency factory for RBAC. Supports both varargs require_roles(A, B) and list require_roles([A, B])."""
-    flattened_roles = []
+    flattened_roles: list[Any] = []
     for r in roles:
         if isinstance(r, (list, tuple, set)):
             flattened_roles.extend(r)
