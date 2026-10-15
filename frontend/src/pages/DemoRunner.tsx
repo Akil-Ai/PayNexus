@@ -204,40 +204,47 @@ export const DemoRunner: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-          <PlaySquare className="w-6 h-6 text-indigo-400" />
-          <span>Interactive Demo Scenario Runner</span>
-        </h1>
-        <p className="text-sm text-slate-400">
-          Execute real scripted test scenarios against the live backend to verify every required feature end-to-end
-        </p>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold tracking-tight text-[#102A56] flex items-center gap-2">
+              <PlaySquare className="w-6 h-6 text-blue-600" />
+              <span>Interactive Demo Scenario Runner</span>
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+              Live Interactive Test Harness
+            </span>
+          </div>
+          <p className="text-sm text-slate-500">
+            Execute real scripted test scenarios against the live backend to verify every required feature end-to-end
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Scenario Buttons Grid */}
-        <div className="space-y-4">
+        <div className="space-y-3.5">
           {scenarios.map((sc) => {
             const Icon = sc.icon;
             const isRunning = runningId === sc.id;
             return (
               <div
                 key={sc.id}
-                className="glass-panel p-5 rounded-2xl border border-slate-800 hover:border-slate-700 transition flex items-start justify-between gap-4"
+                className="fintech-card p-4 hover:border-blue-300 transition flex items-start justify-between gap-4"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                    <h3 className="font-bold text-sm text-white">{sc.title}</h3>
+                    <Icon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    <h3 className="font-bold text-sm text-[#102A56]">{sc.title}</h3>
                   </div>
-                  <p className="text-xs text-slate-400 leading-relaxed font-sans">{sc.description}</p>
+                  <p className="text-xs text-slate-500 leading-relaxed font-sans">{sc.description}</p>
                 </div>
 
                 <button
                   onClick={() => handleRunScenario(sc)}
                   disabled={!!runningId}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/30 transition disabled:opacity-50 flex-shrink-0"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#2563EB] hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition disabled:opacity-50 flex-shrink-0"
                 >
                   {isRunning ? (
                     <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -252,24 +259,24 @@ export const DemoRunner: React.FC = () => {
         </div>
 
         {/* Live Execution Terminal Console */}
-        <div className="glass-panel p-5 rounded-2xl border border-slate-800 flex flex-col h-[560px]">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
-              <Terminal className="w-4 h-4 text-emerald-400" />
-              <span>Live Scenario Console Output</span>
+        <div className="fintech-card p-5 flex flex-col h-[560px]">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2 text-xs font-mono font-semibold text-[#102A56]">
+              <Terminal className="w-4 h-4 text-emerald-600" />
+              <span>Live Scenario Console Telemetry</span>
             </div>
             <button
               onClick={() => setLogs([])}
-              className="text-[11px] font-mono text-slate-500 hover:text-slate-300 transition"
+              className="text-[11px] font-mono text-slate-400 hover:text-slate-700 transition"
             >
               Clear Console
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto font-mono text-xs text-slate-300 p-3 space-y-1.5 bg-slate-950 rounded-xl mt-3 border border-slate-900">
+          <div className="flex-1 overflow-y-auto font-mono text-xs text-slate-800 p-3.5 space-y-2 bg-slate-900 rounded-xl mt-3 border border-slate-800">
             {logs.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-slate-600 text-xs">
-                Click any 'Execute' button to run live scenarios and view telemetry here.
+              <div className="h-full flex items-center justify-center text-slate-500 text-xs font-sans">
+                Click any 'Execute' button to run live scenarios and inspect live telemetry output.
               </div>
             ) : (
               logs.map((log, i) => (
@@ -277,10 +284,10 @@ export const DemoRunner: React.FC = () => {
                   key={i}
                   className={`leading-relaxed ${
                     log.includes('TAMPER CONFIRMED') || log.includes('Error')
-                      ? 'text-rose-400 font-bold'
+                      ? 'text-red-400 font-bold'
                       : log.includes('Success') || log.includes('verified')
                       ? 'text-emerald-400 font-bold'
-                      : 'text-slate-300'
+                      : 'text-slate-200'
                   }`}
                 >
                   {log}
