@@ -38,7 +38,9 @@ code, pre {
   border: 1px solid #E2E8F0;
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px 0 rgba(16, 42, 86, 0.05), 0 1px 2px -1px rgba(16, 42, 86, 0.05);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  transition: box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .fintech-card:hover {
@@ -47,27 +49,27 @@ code, pre {
 }
 
 .fintech-card-hover {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .fintech-card-hover:hover {
   border-color: #CBD5E1;
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(16, 42, 86, 0.08), 0 4px 6px -4px rgba(16, 42, 86, 0.05);
+  box-shadow: 0 10px 18px -3px rgba(16, 42, 86, 0.08), 0 4px 6px -4px rgba(16, 42, 86, 0.04);
 }
 
 /* Glassmorphism utilities for light theme */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(226, 232, 240, 0.9);
   box-shadow: 0 4px 6px -1px rgba(16, 42, 86, 0.04);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .glass-panel-hover {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-panel-hover:hover {
@@ -77,18 +79,72 @@ code, pre {
   box-shadow: 0 10px 20px -3px rgba(37, 99, 235, 0.1);
 }
 
-/* Button interactive press states */
-button, .btn-action {
-  transition: transform 0.1s cubic-bezier(0.2, 0, 0.2, 1), background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+/* Button interactive press states & transitions */
+button, .btn-action, input[type="button"], input[type="submit"] {
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0.2, 1),
+              background-color 0.18s ease,
+              border-color 0.18s ease,
+              color 0.18s ease,
+              box-shadow 0.18s ease,
+              opacity 0.18s ease;
 }
 
 button:active:not(:disabled), .btn-action:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.975);
+}
+
+button:disabled, .btn-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* Accessible focus ring for keyboard navigation */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
 }
 
 /* Row hover highlight for tables */
 tr {
-  transition: background-color 0.15s ease;
+  transition: background-color 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Form input smooth transition */
+input, select, textarea {
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* Fintech status badge transitions */
+.fintech-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* Loading skeleton shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite linear;
 }
 
 /* Custom sleek scrollbar for light theme */
@@ -113,9 +169,9 @@ tr {
 /* Reduced motion accessibility */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
 }
