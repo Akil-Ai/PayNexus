@@ -100,26 +100,36 @@ export const Translator: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">ISO 20022 Message Translator</h1>
-        <p className="text-sm text-slate-400">
-          Bidirectional message transformation: pain.001, pacs.008, ISO 8583, SWIFT MT103, and Legacy CSV
-        </p>
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold tracking-tight text-[#102A56] flex items-center gap-2">
+              <FileCode className="w-6 h-6 text-blue-600" />
+              <span>ISO 20022 Message Translator</span>
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
+              Syntax Normalizer
+            </span>
+          </div>
+          <p className="text-sm text-slate-500">
+            Bidirectional message transformation: pain.001, pacs.008, ISO 8583, SWIFT MT103, and Legacy CSV
+          </p>
+        </div>
       </div>
 
       {/* Preset selection bar */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-2">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-2">
           Sample Payloads:
         </span>
         {Object.entries(PRESETS).map(([key, item]) => (
           <button
             key={key}
             onClick={() => handleSelectPreset(key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
               selectedPreset === key
-                ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-2xs'
+                : 'bg-white border-slate-200 text-slate-600 hover:text-[#102A56] hover:bg-slate-50'
             }`}
           >
             {item.label}
@@ -129,15 +139,15 @@ export const Translator: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input Panel */}
-        <div className="glass-panel p-5 rounded-2xl space-y-3">
+        <div className="fintech-card p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+            <span className="text-xs font-bold text-[#102A56] uppercase tracking-wider">
               Raw Source Message
             </span>
             <select
               value={formatType}
               onChange={(e) => setFormatType(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-mono"
+              className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 font-mono font-medium focus:outline-none focus:border-blue-600"
             >
               <option value="AUTO">Auto-Detect Format</option>
               <option value="PAIN_001">ISO 20022 pain.001</option>
@@ -151,27 +161,27 @@ export const Translator: React.FC = () => {
             rows={18}
             value={inputContent}
             onChange={(e) => setInputContent(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs font-mono text-[#102A56] focus:outline-none focus:border-blue-600 focus:bg-white transition"
           />
 
           <button
             onClick={handleTranslate}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-md shadow-indigo-600/30 transition disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition disabled:opacity-50"
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>Translate to Canonical Model</span>
+            <Play className={`w-3.5 h-3.5 fill-current ${loading ? 'animate-pulse' : ''}`} />
+            <span>{loading ? 'Normalizing Message...' : 'Translate to Canonical Model'}</span>
           </button>
         </div>
 
         {/* Canonical Output Panel */}
-        <div className="glass-panel p-5 rounded-2xl space-y-3">
+        <div className="fintech-card p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+            <span className="text-xs font-bold text-[#102A56] uppercase tracking-wider">
               Canonical Internal Model (ISO 20022 standard)
             </span>
             {output?.detected_format && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200">
                 Format: {output.detected_format}
               </span>
             )}
@@ -180,9 +190,9 @@ export const Translator: React.FC = () => {
           {output ? (
             <div className="space-y-3">
               {output.validation_errors?.length > 0 && (
-                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-mono space-y-1">
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-mono space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4" />
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
                     <span>Validation Errors:</span>
                   </div>
                   {output.validation_errors.map((err: string, i: number) => (
@@ -191,13 +201,13 @@ export const Translator: React.FC = () => {
                 </div>
               )}
 
-              <pre className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs font-mono text-emerald-400 max-h-[460px] overflow-y-auto">
+              <pre className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs font-mono text-[#102A56] max-h-[460px] overflow-y-auto">
                 {JSON.stringify(output.canonical_model || output, null, 2)}
               </pre>
             </div>
           ) : (
-            <div className="h-[440px] flex items-center justify-center border border-dashed border-slate-800 rounded-xl text-xs font-mono text-slate-500">
-              Click 'Translate' to see canonical mapping and validation results.
+            <div className="h-[440px] flex items-center justify-center border border-dashed border-slate-200 rounded-xl text-xs font-mono text-slate-400">
+              Click 'Translate to Canonical Model' to view parsed normalized structure.
             </div>
           )}
         </div>
