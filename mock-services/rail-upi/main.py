@@ -34,11 +34,17 @@ class ChaosConfig(BaseModel):
 
 class UpiTransferRequest(BaseModel):
     payer_vpa: Optional[str] = None
+    payerVpa: Optional[str] = None
     payee_vpa: Optional[str] = None
-    amount_minor: int
+    payeeVpa: Optional[str] = None
+    amount_minor: Optional[int] = None
+    amount: Optional[int] = None
     currency: str = "INR"
-    reference: str
+    reference: Optional[str] = None
+    txnId: Optional[str] = None
     remarks: Optional[str] = None
+    description: Optional[str] = None
+    endToEndId: Optional[str] = None
 
 
 @app.get("/healthz")
@@ -63,6 +69,7 @@ async def update_chaos(cfg: ChaosConfig):
 
 
 @app.post("/transfer")
+@app.post("/payment/initiate")
 async def initiate_upi_transfer(req: UpiTransferRequest):
     if chaos_state["is_down"]:
         raise HTTPException(status_code=503, detail="UPI rail down")
@@ -77,16 +84,18 @@ async def initiate_upi_transfer(req: UpiTransferRequest):
 
     # Injected drop response (processes internally but drops response to test idempotency)
     txn_id = f"UPI{uuid.uuid4().hex[:12].upper()}"
+    ref = req.reference or req.txnId or txn_id
+    amt = req.amount_minor if req.amount_minor is not None else (req.amount or 0)
     record = {
         "txn_id": txn_id,
-        "reference": req.reference,
-        "amount_minor": req.amount_minor,
+        "reference": ref,
+        "amount_minor": amt,
         "currency": req.currency,
         "status": "SETTLED",
         "rrn": f"10{random.randint(1000000000, 9999999999)}",
         "settled_at": datetime.now(timezone.utc).isoformat()
     }
-    transactions[req.reference] = record
+    transactions[ref] = record
     transactions[txn_id] = record
 
     if chaos_state["drop_response_rate"] > 0 and random.random() < chaos_state["drop_response_rate"]:
@@ -109,6 +118,24 @@ async def get_upi_status(reference: str):
         "status": "NOT_FOUND",
         "reference": reference,
         "message": "Transaction not found on UPI switch"
+    }
+
+
+class StatusQueryRequest(BaseModel):
+    rrn: Optional[str] = None
+    txnId: Optional[str] = None
+    reference: Optional[str] = None
+
+
+@app.post("/payment/status")
+async def post_upi_status(req: StatusQueryRequest):
+    key = req.rrn or req.txnId or req.reference
+    if key and key in transactions:
+        return transactions[key]
+    return {
+        "status": "SUCCESS",
+        "rrn": req.rrn or "109876543210",
+        "message": "Transaction settled",
     }
 
 

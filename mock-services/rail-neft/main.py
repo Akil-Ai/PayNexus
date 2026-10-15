@@ -62,9 +62,13 @@ async def update_chaos(cfg: ChaosConfig):
 
 
 @app.post("/transfer")
-async def initiate_neft_transfer(req: NeftTransferRequest):
+@app.post("/neft/submit")
+async def initiate_neft_transfer(req: dict):
     if chaos_state["is_down"]:
         raise HTTPException(status_code=503, detail="NEFT rail down")
+
+    amt = req.get("amount_minor") or req.get("amount", 0)
+    ref = req.get("reference") or req.get("txnId") or f"NEFT-TX-{uuid.uuid4().hex[:8]}"
 
     if chaos_state["latency_ms"] > 0:
         await asyncio.sleep(chaos_state["latency_ms"] / 1000.0)
@@ -75,14 +79,14 @@ async def initiate_neft_transfer(req: NeftTransferRequest):
     utr = f"NEFT{datetime.now().strftime('%Y%m%d')}{uuid.uuid4().hex[:8].upper()}"
     record = {
         "utr": utr,
-        "reference": req.reference,
-        "amount_minor": req.amount_minor,
-        "currency": req.currency,
+        "reference": ref,
+        "amount_minor": amt,
+        "currency": req.get("currency", "INR"),
         "status": "SETTLED",
         "batch_id": f"B{datetime.now().strftime('%H%M')}",
         "settled_at": datetime.now(timezone.utc).isoformat()
     }
-    transactions[req.reference] = record
+    transactions[ref] = record
     transactions[utr] = record
 
     if chaos_state["drop_response_rate"] > 0 and random.random() < chaos_state["drop_response_rate"]:
@@ -103,6 +107,14 @@ async def get_neft_status(utr: str):
     if utr in transactions:
         return transactions[utr]
     return {"status": "NOT_FOUND", "utr": utr}
+
+
+@app.post("/neft/status")
+async def post_neft_status(req: dict):
+    utr = req.get("utr") or req.get("reference")
+    if utr and utr in transactions:
+        return transactions[utr]
+    return {"status": "SETTLED", "utr": utr}
 
 
 @app.get("/settlement-file", response_class=PlainTextResponse)

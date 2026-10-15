@@ -62,9 +62,14 @@ async def update_chaos(cfg: ChaosConfig):
 
 
 @app.post("/transfer")
-async def initiate_swift_transfer(req: SwiftTransferRequest):
+@app.post("/pacs008/submit")
+async def initiate_swift_transfer(req: dict):
     if chaos_state["is_down"]:
         raise HTTPException(status_code=503, detail="SWIFT gateway down")
+
+    ref = req.get("reference") or req.get("msgId") or req.get("endToEndId") or f"SWIFT-{uuid.uuid4().hex[:8]}"
+    amt = req.get("amount_minor") or req.get("amount", 0)
+    curr = req.get("currency", "USD")
 
     if chaos_state["latency_ms"] > 0:
         await asyncio.sleep(chaos_state["latency_ms"] / 1000.0)
@@ -75,22 +80,27 @@ async def initiate_swift_transfer(req: SwiftTransferRequest):
     uetr = str(uuid.uuid4())
     record = {
         "uetr": uetr,
-        "reference": req.reference,
-        "amount_minor": req.amount_minor,
-        "currency": req.currency,
-        "status": "SETTLED",
+        "txId": uetr,
+        "msgId": ref,
+        "reference": ref,
+        "amount_minor": amt,
+        "currency": curr,
+        "status": "ACSC",
+        "txSts": "ACSC",
         "gpi_status": "ACSP",  # Accepted Settlement in Process
         "settled_at": datetime.now(timezone.utc).isoformat()
     }
-    transactions[req.reference] = record
+    transactions[ref] = record
     transactions[uetr] = record
 
     if chaos_state["drop_response_rate"] > 0 and random.random() < chaos_state["drop_response_rate"]:
         raise HTTPException(status_code=504, detail="SWIFT ACK Timeout - Response dropped")
 
     return {
-        "status": "SUCCESS",
+        "status": "ACSC",
         "rail_reference": uetr,
+        "txId": uetr,
+        "msgId": ref,
         "uetr": uetr,
         "gpi_status": record["gpi_status"],
         "message": "SWIFT payment accepted for settlement",
@@ -103,6 +113,24 @@ async def get_swift_status(uetr: str):
     if uetr in transactions:
         return transactions[uetr]
     return {"status": "NOT_FOUND", "uetr": uetr}
+
+
+@app.post("/pacs002/status")
+async def post_swift_status(req: dict):
+    tx_id = req.get("txId") or req.get("uetr")
+    if tx_id and tx_id in transactions:
+        return transactions[tx_id]
+    return {
+        "txId": tx_id,
+        "txSts": "ACSC",
+        "status": "ACSC",
+        "stsRsnInf": "Settlement confirmed"
+    }
+
+
+@app.post("/camt056/cancel")
+async def post_swift_cancel(req: dict):
+    return {"status": "CANCELLED", "txId": req.get("txId")}
 
 
 @app.get("/settlement-file", response_class=PlainTextResponse)

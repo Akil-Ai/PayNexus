@@ -62,9 +62,14 @@ async def update_chaos(cfg: ChaosConfig):
 
 @app.post("/transfer")
 @app.post("/authorize")
-async def authorize_card(req: CardAuthRequest):
+async def authorize_card(req: dict):
     if chaos_state["is_down"]:
         raise HTTPException(status_code=503, detail="Card network down")
+
+    ref = req.get("reference") or req.get("orderId") or f"CARD-{uuid.uuid4().hex[:8]}"
+    amt = req.get("amount_minor") or req.get("amount", 0)
+    curr = req.get("currency", "INR")
+    token = req.get("token") or req.get("cardToken") or f"tok_{uuid.uuid4().hex[:16]}"
 
     if chaos_state["latency_ms"] > 0:
         await asyncio.sleep(chaos_state["latency_ms"] / 1000.0)
@@ -75,14 +80,15 @@ async def authorize_card(req: CardAuthRequest):
     auth_code = f"AUTH{random.randint(100000, 999999)}"
     record = {
         "auth_code": auth_code,
-        "reference": req.reference,
-        "amount_minor": req.amount_minor,
-        "currency": req.currency,
+        "authCode": auth_code,
+        "reference": ref,
+        "amount_minor": amt,
+        "currency": curr,
         "status": "SETTLED",
-        "card_token": req.token or f"tok_{uuid.uuid4().hex[:16]}",
+        "card_token": token,
         "settled_at": datetime.now(timezone.utc).isoformat()
     }
-    transactions[req.reference] = record
+    transactions[ref] = record
     transactions[auth_code] = record
 
     if chaos_state["drop_response_rate"] > 0 and random.random() < chaos_state["drop_response_rate"]:
@@ -92,10 +98,37 @@ async def authorize_card(req: CardAuthRequest):
         "status": "SUCCESS",
         "rail_reference": auth_code,
         "auth_code": auth_code,
+        "authCode": auth_code,
         "card_token": record["card_token"],
-        "message": "Card authorized and captured",
+        "message": "Card authorized successfully",
         "settled_at": record["settled_at"]
     }
+
+
+@app.post("/capture")
+async def capture_card(req: dict):
+    auth_code = req.get("authCode") or req.get("auth_code")
+    settle_id = f"SETTLE-{uuid.uuid4().hex[:10].upper()}"
+    return {
+        "status": "CAPTURED",
+        "settleId": settle_id,
+        "authCode": auth_code,
+        "message": "Card capture settled successfully"
+    }
+
+
+@app.post("/status")
+async def post_card_status(req: dict):
+    return {
+        "status": "CAPTURED",
+        "settleId": req.get("settleId", "SETTLE-OK"),
+        "message": "Card payment captured"
+    }
+
+
+@app.post("/void")
+async def void_card(req: dict):
+    return {"status": "VOIDED", "message": "Card voided"}
 
 
 @app.get("/status/{auth_code}")
