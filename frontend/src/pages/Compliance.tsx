@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../lib/api';
 import {
   ShieldAlert,
@@ -405,50 +406,74 @@ export const Compliance: React.FC = () => {
       )}
 
       {/* Four-Eyes Approval Decision Modal */}
-      {approvalModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-[#102A56] flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-blue-600" />
-              <span>Four-Eyes Maker-Checker Review</span>
-            </h3>
-            <p className="text-xs text-slate-600">
-              You are acting as the independent Checker for flagged entity:{' '}
-              <span className="text-[#102A56] font-bold">{approvalModal.name}</span>.
-            </p>
+      <AnimatePresence>
+        {approvalModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16 }}
+              onClick={() => setApprovalModal(null)}
+              className="fixed inset-0 bg-slate-900/35 backdrop-blur-2xs"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="relative w-full max-w-md bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl space-y-4 z-10"
+            >
+              <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                <h3 className="text-base font-bold text-[#102A56] flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-blue-600" />
+                  <span>Four-Eyes Maker-Checker Review</span>
+                </h3>
+                <button
+                  onClick={() => setApprovalModal(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-600">
+                You are acting as the independent Checker for flagged entity:{' '}
+                <span className="text-[#102A56] font-bold">{approvalModal.name}</span>.
+              </p>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Audit Justification / Case Notes
-              </label>
-              <textarea
-                rows={3}
-                value={approvalNotes}
-                onChange={(e) => setApprovalNotes(e.target.value)}
-                placeholder="State formal compliance rationale for approval or block..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-[#102A56] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Audit Justification / Case Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={approvalNotes}
+                  onChange={(e) => setApprovalNotes(e.target.value)}
+                  placeholder="State formal compliance rationale for approval or block..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-[#102A56] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+                />
+              </div>
 
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={() => handleApprovalAction('APPROVE')}
-                disabled={actionLoading}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition"
-              >
-                Approve & Release
-              </button>
-              <button
-                onClick={() => handleApprovalAction('REJECT')}
-                disabled={actionLoading}
-                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition"
-              >
-                Confirm Block
-              </button>
-            </div>
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={() => handleApprovalAction('APPROVE')}
+                  disabled={actionLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition"
+                >
+                  {actionLoading ? 'Processing...' : 'Approve & Release'}
+                </button>
+                <button
+                  onClick={() => handleApprovalAction('REJECT')}
+                  disabled={actionLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition"
+                >
+                  {actionLoading ? 'Processing...' : 'Confirm Block'}
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 };
