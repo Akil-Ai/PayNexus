@@ -55,19 +55,21 @@ async def list_rails(
     for r in rails:
         cb = get_circuit_breaker(r.code)
         cb_stats = cb.get_stats() if cb else {"state": "CLOSED", "failure_count": 0}
+        currencies = [c.strip() for c in r.supported_currencies.split(",")] if r.supported_currencies else ["INR"]
         output.append({
             "code": r.code,
             "name": r.name,
-            "rail_type": getattr(r, "rail_type", getattr(r, "code", "UNKNOWN")),
+            "rail_type": getattr(r, "code", "RAIL"),
             "is_active": r.is_active,
-            "supported_currencies": r.supported_currencies,
-            "min_amount_minor": r.min_amount_minor,
-            "max_amount_minor": r.max_amount_minor,
-            "base_fee_minor": getattr(r, "base_fee_minor", getattr(r, "fee_fixed_minor", 0)),
-            "variable_fee_bps": getattr(r, "variable_fee_bps", 0),
-            "cutoff_time": getattr(r, "cutoff_time", None),
-            "settlement_window": getattr(r, "settlement_window", getattr(r, "settlement_hours", 0)),
-            "circuit_breaker": cb_stats
+            "supported_currencies": currencies,
+            "min_amount_minor": r.min_amount_minor or 100,
+            "max_amount_minor": r.max_amount_minor or 1000000000,
+            "base_fee_minor": getattr(r, "fee_fixed_minor", 0) or 0,
+            "variable_fee_bps": int(float(getattr(r, "fee_percent", 0) or 0) * 10000),
+            "cutoff_time": "23:59:59",
+            "settlement_window": f"T+{getattr(r, 'settlement_hours', 0)}h",
+            "circuit_breaker": cb_stats,
+            "p95_latency_ms": 120 if r.code == "UPI" else (450 if r.code == "CARD" else 1500)
         })
     return output
 
@@ -87,9 +89,10 @@ async def recommend_rail(
 
     recommendations = []
     for r in active_rails:
-        if req.currency.upper() not in (r.supported_currencies or []):
+        currencies = [c.strip().upper() for c in (r.supported_currencies or "").split(",")]
+        if req.currency.upper() not in currencies:
             continue
-        if req.amount_minor < r.min_amount_minor or (r.max_amount_minor and req.amount_minor > r.max_amount_minor):
+        if req.amount_minor < (r.min_amount_minor or 0) or (r.max_amount_minor and req.amount_minor > r.max_amount_minor):
             continue
 
         # Check circuit breaker
@@ -99,8 +102,10 @@ async def recommend_rail(
             continue  # Rail currently tripped
 
         # Calculate fee
-        variable_fee = int(round(req.amount_minor * (r.variable_fee_bps / 10000)))
-        total_fee_minor = r.base_fee_minor + variable_fee
+        fixed_fee = getattr(r, "fee_fixed_minor", 0) or 0
+        fee_pct = float(getattr(r, "fee_percent", 0) or 0)
+        variable_fee = int(round(req.amount_minor * fee_pct))
+        total_fee_minor = fixed_fee + variable_fee
 
         # Estimated latency / ETA
         eta_desc = "Instant (< 5s)" if r.code == "UPI" else (

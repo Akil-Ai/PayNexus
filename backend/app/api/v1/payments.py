@@ -196,6 +196,7 @@ async def create_payment_endpoint(
 @router.get("")
 async def list_payments(
     state: Optional[str] = Query(None),
+    rail: Optional[str] = Query(None),
     currency: Optional[str] = Query(None),
     customer_id: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
@@ -211,6 +212,10 @@ async def list_payments(
 
     if state:
         query = query.where(Payment.state == state)
+    if rail:
+        # Join Rail table or filter rail_id
+        rail_subq = select(Rail.id).where(Rail.code == rail.upper())
+        query = query.where(Payment.rail_id.in_(rail_subq))
     if currency:
         query = query.where(Payment.currency == currency.upper())
     if customer_id:

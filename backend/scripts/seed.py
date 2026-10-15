@@ -48,9 +48,11 @@ def seed_database():
     engine = get_sync_engine()
     print(f"Connecting to database: {engine.url}...")
     Session = sessionmaker(bind=engine)
-    session = Session()
-
     try:
+        # Ensure tables are created
+        Base.metadata.create_all(bind=engine)
+        session = Session()
+
         # Check if already seeded
         existing_user = session.execute(select(User).limit(1)).scalar_one_or_none()
         if existing_user:

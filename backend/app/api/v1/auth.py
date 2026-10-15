@@ -1,6 +1,6 @@
 """Auth router: login, refresh, logout, register (admin only)."""
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm, HTTPBearer, HTTPAuthorizationCredentials
@@ -68,23 +68,21 @@ async def get_current_user(
     return user
 
 
-def require_roles(*roles):
-    """Dependency factory for RBAC.
-
-    Accepts either variadic args: require_roles(UserRole.ADMIN, UserRole.OPS)
-    or a single list:             require_roles([UserRole.ADMIN, UserRole.OPS])
-    Both call patterns are normalised to a flat tuple internally.
-    """
-    # Normalise: if first arg is a list, unpack it
-    if len(roles) == 1 and isinstance(roles[0], list):
-        roles = tuple(roles[0])
+def require_roles(*roles: Any):
+    """Dependency factory for RBAC. Supports both varargs require_roles(A, B) and list require_roles([A, B])."""
+    flattened_roles = []
+    for r in roles:
+        if isinstance(r, (list, tuple, set)):
+            flattened_roles.extend(r)
+        else:
+            flattened_roles.append(r)
 
     async def _check(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in roles:
+        if current_user.role not in flattened_roles:
             raise HTTPException(
                 status_code=403,
                 detail=f"Role {current_user.role.value} not authorized for this action. "
-                       f"Required: {[r.value for r in roles]}",
+                       f"Required: {[r.value if hasattr(r, 'value') else str(r) for r in flattened_roles]}",
             )
         return current_user
     return _check

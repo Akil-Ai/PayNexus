@@ -375,6 +375,13 @@ async def main():
                         try:
                             event_type = data.get("event_type", "")
                             aggregate_id = data.get("aggregate_id", "") or data.get("payment_id", "")
+                            if not aggregate_id and "payload" in data:
+                                try:
+                                    raw_payload = data.get("payload")
+                                    p_obj = json.loads(raw_payload) if isinstance(raw_payload, str) else raw_payload
+                                    aggregate_id = p_obj.get("payment_id") or p_obj.get("aggregate_id")
+                                except Exception:
+                                    pass
 
                             if aggregate_id:
                                 logger.info(f"Orchestrating event {event_type} for payment {aggregate_id}")

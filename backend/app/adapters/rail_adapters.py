@@ -2,7 +2,7 @@
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Any
 
 import httpx
 
@@ -32,6 +32,21 @@ class RailResponse:
         self.raw_response = raw_response
         self.settlement_time = settlement_time
 
+    def __getitem__(self, key: str):
+        if hasattr(self, key):
+            return getattr(self, key)
+        if self.raw_response and isinstance(self.raw_response, dict) and key in self.raw_response:
+            return self.raw_response[key]
+        raise KeyError(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if hasattr(self, key):
+            val = getattr(self, key)
+            return val if val is not None else default
+        if self.raw_response and isinstance(self.raw_response, dict):
+            return self.raw_response.get(key, default)
+        return default
+
 
 class BaseRailAdapter(ABC):
     """Ports-and-adapters interface for all payment rails."""
@@ -39,8 +54,22 @@ class BaseRailAdapter(ABC):
     rail_code: str
     base_url: str
 
+    def _normalize_payload(self, payment_payload: Any) -> dict:
+        if isinstance(payment_payload, dict):
+            return payment_payload
+        # If it's a Payment model or object
+        return {
+            "payment_id": getattr(payment_payload, "id", str(uuid.uuid4())),
+            "amount_minor": getattr(payment_payload, "amount_minor", 0),
+            "currency": getattr(payment_payload, "currency", "INR"),
+            "description": getattr(payment_payload, "description", ""),
+            "end_to_end_id": getattr(payment_payload, "reference", str(uuid.uuid4())),
+            "sender_account_id": getattr(payment_payload, "sender_account_id", None),
+            "beneficiary_id": getattr(payment_payload, "beneficiary_id", None),
+        }
+
     @abstractmethod
-    async def submit_payment(self, payment_payload: dict) -> RailResponse:
+    async def submit_payment(self, payment_payload: Any) -> RailResponse:
         pass
 
     @abstractmethod
@@ -98,7 +127,8 @@ class UPIAdapter(BaseRailAdapter):
     def __init__(self):
         self.base_url = settings.rail_upi_url
 
-    async def submit_payment(self, payment_payload: dict) -> RailResponse:
+    async def submit_payment(self, payment_payload: Any) -> RailResponse:
+        payment_payload = self._normalize_payload(payment_payload)
         body = {
             "txnId": payment_payload["payment_id"],
             "amount": payment_payload["amount_minor"],
@@ -147,7 +177,8 @@ class NEFTAdapter(BaseRailAdapter):
     def __init__(self):
         self.base_url = settings.rail_neft_url
 
-    async def submit_payment(self, payment_payload: dict) -> RailResponse:
+    async def submit_payment(self, payment_payload: Any) -> RailResponse:
+        payment_payload = self._normalize_payload(payment_payload)
         body = {
             "txnId": payment_payload["payment_id"],
             "amount": payment_payload["amount_minor"],
@@ -162,7 +193,7 @@ class NEFTAdapter(BaseRailAdapter):
         try:
             resp = await self._post("/neft/submit", body)
             return RailResponse(
-                success=resp.get("status") in ("ACCEPTED", "PENDING"),
+                success=resp.get("status") in ("ACCEPTED", "PENDING", "SETTLED", "SUCCESS"),
                 rail_reference=resp.get("utr") or resp.get("txnId"),
                 status=resp.get("status", "UNKNOWN"),
                 message=resp.get("message", ""),
@@ -198,7 +229,8 @@ class SWIFTAdapter(BaseRailAdapter):
     def __init__(self):
         self.base_url = settings.rail_swift_url
 
-    async def submit_payment(self, payment_payload: dict) -> RailResponse:
+    async def submit_payment(self, payment_payload: Any) -> RailResponse:
+        payment_payload = self._normalize_payload(payment_payload)
         body = {
             "msgId": payment_payload["payment_id"],
             "amount": payment_payload["amount_minor"],
@@ -214,7 +246,7 @@ class SWIFTAdapter(BaseRailAdapter):
         try:
             resp = await self._post("/pacs008/submit", body)
             return RailResponse(
-                success=resp.get("status") in ("ACCP", "ACSC"),
+                success=resp.get("status") in ("ACCP", "ACSC", "SETTLED", "SUCCESS"),
                 rail_reference=resp.get("txId") or resp.get("msgId"),
                 status=resp.get("status", "UNKNOWN"),
                 message=resp.get("message", ""),
@@ -250,7 +282,8 @@ class CARDAdapter(BaseRailAdapter):
     def __init__(self):
         self.base_url = settings.rail_card_url
 
-    async def submit_payment(self, payment_payload: dict) -> RailResponse:
+    async def submit_payment(self, payment_payload: Any) -> RailResponse:
+        payment_payload = self._normalize_payload(payment_payload)
         """Card uses auth + capture flow."""
         auth_body = {
             "merchantId": "PAYNEXUS_MERCHANT",
