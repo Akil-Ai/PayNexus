@@ -1,0 +1,104 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Payment Creation Rate",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(rate(payments_created_total[1m]))",
+          "legendFormat": "tx/sec",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "title": "Active In-Flight Payments",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(in_flight_payments_gauge)",
+          "legendFormat": "in-flight",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "title": "DLQ Depth",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "dlq_depth_gauge",
+          "legendFormat": "DLQ events",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "title": "Reconciliation Match Rate %",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "recon_match_rate_pct",
+          "legendFormat": "Match %",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 5,
+      "title": "Payment Transitions by State",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (to_state) (rate(payment_state_transitions_total[1m]))",
+          "legendFormat": "{{to_state}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 6,
+      "title": "Rail Adapter Latency (p95)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(rail_latency_seconds_bucket[5m])) by (le, rail))",
+          "legendFormat": "{{rail}} p95",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["paynexus", "payments"],
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "PayNexus Executive & Operations Dashboard",
+  "uid": "paynexus-exec",
+  "version": 1
+}
