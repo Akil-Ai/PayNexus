@@ -4,19 +4,19 @@
 
 @layer base {
   :root {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 9%;
-    --card-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --border: 217 33% 20%;
+    --background: 216 33% 97%; /* #F3F6FA */
+    --foreground: 217 68% 20%; /* #102A56 Navy */
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 217 68% 20%;
+    --primary: 221 83% 53%; /* #2563EB Electric Blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 217 68% 20%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 95% 93%;
+    --accent-foreground: 221 83% 53%;
+    --border: 214 32% 91%; /* #E2E8F0 */
     --radius: 0.75rem;
   }
 }
@@ -24,18 +24,39 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
+  background-color: #F3F6FA;
+  color: #102A56;
 }
 
 code, pre {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Glassmorphism utilities */
+/* Premium Fintech Card utilities */
+.fintech-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(16, 42, 86, 0.05), 0 1px 2px -1px rgba(16, 42, 86, 0.05);
+}
+
+.fintech-card-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fintech-card-hover:hover {
+  border-color: #CBD5E1;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(16, 42, 86, 0.08), 0 4px 6px -4px rgba(16, 42, 86, 0.05);
+}
+
+/* Glassmorphism utilities for light theme */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 6px -1px rgba(16, 42, 86, 0.04);
 }
 
 .glass-panel-hover {
@@ -43,27 +64,27 @@ code, pre {
 }
 
 .glass-panel-hover:hover {
-  background: rgba(30, 41, 59, 0.85);
-  border-color: rgba(99, 102, 241, 0.4);
+  background: #FFFFFF;
+  border-color: #2563EB;
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 20px -3px rgba(37, 99, 235, 0.1);
 }
 
-/* Custom sleek scrollbar */
+/* Custom sleek scrollbar for light theme */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: #F1F5F9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
+  background: #CBD5E1;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.8);
+  background: #94A3B8;
 }
