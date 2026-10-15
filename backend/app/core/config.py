@@ -98,6 +98,10 @@ class Settings(BaseSettings):
     def KYC_URL(self) -> str:
         return self.kyc_url
 
+    @property
+    def KYC_SERVICE_URL(self) -> str:
+        return self.kyc_url
+
 
 
 

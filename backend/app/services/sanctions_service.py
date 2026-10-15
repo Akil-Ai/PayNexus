@@ -129,7 +129,19 @@ async def _call_provider(name: str, block_threshold: float, review_threshold: fl
                 },
             )
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            # Map mock sanctions response fields if necessary
+            result_val = data.get("decision") or data.get("result", "PASS")
+            score_val = data.get("match_score") if "match_score" in data else data.get("score", 0.0)
+            matched = data.get("matched_entry") or {}
+            matched_name = matched.get("name") or data.get("matched_name")
+            matched_id = matched.get("id") or data.get("matched_id")
+            return {
+                "result": result_val,
+                "score": score_val,
+                "matched_name": matched_name,
+                "matched_id": matched_id,
+            }
     except Exception as e:
         logger.error("Sanctions provider call failed", extra={"error": str(e)})
         return None

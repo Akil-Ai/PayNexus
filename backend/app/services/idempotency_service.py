@@ -75,8 +75,12 @@ async def check_idempotency(
                 f"Idempotency key '{key}' was previously used with a different request body."
             )
         # Check not expired
-        if existing.expires_at < datetime.now(timezone.utc):
-            return None  # Expired, treat as new
+        exp_at = existing.expires_at
+        if exp_at is not None:
+            if exp_at.tzinfo is None:
+                exp_at = exp_at.replace(tzinfo=timezone.utc)
+            if exp_at < datetime.now(timezone.utc):
+                return None  # Expired, treat as new
         # Return cached response
         if existing.response_body is not None:
             idempotency_replays_total.inc()

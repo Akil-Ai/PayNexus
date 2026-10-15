@@ -19,8 +19,10 @@ async def get_redis() -> redis_async.Redis:
                 encoding="utf-8",
                 decode_responses=True,
                 max_connections=20,
+                socket_connect_timeout=0.5,
+                socket_timeout=0.5,
             )
-            await client.ping()
+            await asyncio.wait_for(client.ping(), timeout=0.8)
             _redis_client = client
         except Exception:
             try:

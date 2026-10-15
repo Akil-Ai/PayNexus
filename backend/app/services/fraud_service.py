@@ -6,7 +6,90 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 
 import numpy as np
-from json_logic import jsonLogic
+
+def jsonLogic(rule, data):
+    """Robust built-in JSON-logic evaluator supporting var, and, or, >, >=, <, <=, ==, !=, in_hours."""
+    if not isinstance(rule, dict):
+        return rule
+    if not rule:
+        return True
+
+    op = next(iter(rule))
+    values = rule[op]
+
+    if op == "var":
+        if isinstance(values, list):
+            var_name = values[0] if values else ""
+            default = values[1] if len(values) > 1 else None
+        else:
+            var_name = values
+            default = None
+        if isinstance(data, dict):
+            return data.get(var_name, default)
+        return getattr(data, var_name, default)
+
+    if op == "and":
+        if not isinstance(values, list):
+            values = [values]
+        return all(bool(jsonLogic(v, data)) for v in values)
+
+    if op == "or":
+        if not isinstance(values, list):
+            values = [values]
+        return any(bool(jsonLogic(v, data)) for v in values)
+
+    if op == ">":
+        a = jsonLogic(values[0], data) if isinstance(values[0], dict) else values[0]
+        b = jsonLogic(values[1], data) if isinstance(values[1], dict) else values[1]
+        try:
+            return float(a) > float(b)
+        except (ValueError, TypeError):
+            return False
+
+    if op == ">=":
+        a = jsonLogic(values[0], data) if isinstance(values[0], dict) else values[0]
+        b = jsonLogic(values[1], data) if isinstance(values[1], dict) else values[1]
+        try:
+            return float(a) >= float(b)
+        except (ValueError, TypeError):
+            return False
+
+    if op == "<":
+        a = jsonLogic(values[0], data) if isinstance(values[0], dict) else values[0]
+        b = jsonLogic(values[1], data) if isinstance(values[1], dict) else values[1]
+        try:
+            return float(a) < float(b)
+        except (ValueError, TypeError):
+            return False
+
+    if op == "<=":
+        a = jsonLogic(values[0], data) if isinstance(values[0], dict) else values[0]
+        b = jsonLogic(values[1], data) if isinstance(values[1], dict) else values[1]
+        try:
+            return float(a) <= float(b)
+        except (ValueError, TypeError):
+            return False
+
+    if op in ("==", "==="):
+        a = jsonLogic(values[0], data) if isinstance(values[0], dict) else values[0]
+        b = jsonLogic(values[1], data) if isinstance(values[1], dict) else values[1]
+        return a == b
+
+    if op in ("!=", "!=="):
+        a = jsonLogic(values[0], data) if isinstance(values[0], dict) else values[0]
+        b = jsonLogic(values[1], data) if isinstance(values[1], dict) else values[1]
+        return a != b
+
+    if op == "in_hours":
+        # values: [start_hour, end_hour]
+        start_h, end_h = values[0], values[1]
+        current_h = datetime.now(timezone.utc).hour
+        if start_h <= end_h:
+            return start_h <= current_h <= end_h
+        return current_h >= start_h or current_h <= end_h
+
+    return False
+
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,10 +115,22 @@ def load_fraud_model():
     if _model_loaded:
         return _fraud_model
     try:
-        if os.path.exists(settings.fraud_model_path):
-            with open(settings.fraud_model_path, "rb") as f:
+        candidates = [
+            settings.fraud_model_path,
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../models/fraud_model.pkl")),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "../../models/fraud_model.pkl")),
+            "/app/models/fraud_model.pkl",
+        ]
+        found_path = None
+        for p in candidates:
+            if p and os.path.exists(p):
+                found_path = p
+                break
+
+        if found_path:
+            with open(found_path, "rb") as f:
                 _fraud_model = pickle.load(f)
-            logger.info("Fraud model loaded", extra={"path": settings.fraud_model_path})
+            logger.info("Fraud model loaded", extra={"path": found_path})
         else:
             logger.warning("Fraud model not found, ML scoring disabled")
     except Exception as e:
