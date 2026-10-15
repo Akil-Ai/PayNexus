@@ -68,8 +68,17 @@ async def get_current_user(
     return user
 
 
-def require_roles(*roles: UserRole):
-    """Dependency factory for RBAC."""
+def require_roles(*roles):
+    """Dependency factory for RBAC.
+
+    Accepts either variadic args: require_roles(UserRole.ADMIN, UserRole.OPS)
+    or a single list:             require_roles([UserRole.ADMIN, UserRole.OPS])
+    Both call patterns are normalised to a flat tuple internally.
+    """
+    # Normalise: if first arg is a list, unpack it
+    if len(roles) == 1 and isinstance(roles[0], list):
+        roles = tuple(roles[0])
+
     async def _check(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role not in roles:
             raise HTTPException(

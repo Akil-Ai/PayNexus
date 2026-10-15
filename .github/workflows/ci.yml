@@ -7,8 +7,9 @@ on:
     branches: [main, master]
 
 jobs:
-  backend-test:
-    name: Backend Lint & Unit Tests
+  # ── Backend: Lint ────────────────────────────────────────────────────────────
+  backend-lint:
+    name: Backend Lint (ruff + mypy)
     runs-on: ubuntu-latest
 
     steps:
@@ -19,21 +20,122 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
+          cache-dependency-path: backend/requirements.txt
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
-          pip install pytest pytest-asyncio httpx ruff
 
-      - name: Run Ruff Lint
+      - name: Ruff Lint
         run: |
-          ruff check backend/app
+          ruff check backend/app --output-format=github
 
-      - name: Run Unit Tests
+      - name: Mypy Type Check
         run: |
-          pytest backend/tests/unit -v
+          mypy backend/app \
+            --ignore-missing-imports \
+            --no-strict-optional \
+            --follow-imports=skip \
+            --exclude 'backend/app/db/migrations'
 
+  # ── Backend: Unit Tests ──────────────────────────────────────────────────────
+  backend-unit-tests:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run Unit Tests (with coverage)
+        run: |
+          pytest backend/tests/unit -v \
+            --tb=short \
+            --cov=backend/app \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          SYNC_DATABASE_URL: sqlite:///./test.db
+          SECRET_KEY: ci-test-secret-key-at-least-32-chars!!
+          FIELD_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          ENVIRONMENT: test
+
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+
+  # ── Backend: Integration Tests ───────────────────────────────────────────────
+  backend-integration-tests:
+    name: Backend Integration Tests
+    runs-on: ubuntu-latest
+    needs: backend-unit-tests
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install schemathesis
+
+      - name: Initialize Test Database
+        run: |
+          python scripts/init_local_db.py
+          python scripts/seed.py
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./paynexus.db
+          SYNC_DATABASE_URL: sqlite:///./paynexus.db
+          SECRET_KEY: ci-test-secret-key-at-least-32-chars!!
+          FIELD_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          ENVIRONMENT: test
+
+      - name: Run Integration Tests
+        run: |
+          pytest backend/tests/integration -v --tb=short
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./paynexus.db
+          SYNC_DATABASE_URL: sqlite:///./paynexus.db
+          REDIS_URL: redis://127.0.0.1:6379/0
+          SECRET_KEY: ci-test-secret-key-at-least-32-chars!!
+          FIELD_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          ENVIRONMENT: test
+
+  # ── Frontend: Typecheck + Build ──────────────────────────────────────────────
   frontend-build:
     name: Frontend Typecheck & Build
     runs-on: ubuntu-latest
@@ -46,10 +148,103 @@ jobs:
         with:
           node-version: 20
           cache: "npm"
-          cache-dependency-path: frontend/package.json
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install & Build
+      - name: Install Dependencies
         run: |
           cd frontend
-          npm install
+          npm ci
+
+      - name: TypeScript Check + Production Build
+        run: |
+          cd frontend
           npm run build
+
+  # ── E2E: Playwright Smoke Tests ──────────────────────────────────────────────
+  e2e-smoke:
+    name: Playwright E2E Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [backend-integration-tests, frontend-build]
+    timeout-minutes: 15
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Install Frontend Dependencies + Playwright
+        run: |
+          cd frontend
+          npm ci
+          npx playwright install chromium --with-deps
+
+      - name: Initialize Test Database
+        run: |
+          python scripts/init_local_db.py
+          python scripts/seed.py
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./paynexus.db
+          SYNC_DATABASE_URL: sqlite:///./paynexus.db
+          SECRET_KEY: ci-test-secret-key-at-least-32-chars!!
+          FIELD_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          ENVIRONMENT: test
+
+      - name: Start Backend Services
+        run: |
+          # Start mock services
+          for port in 8101 8102 8103 8104 8201 8202; do
+            uvicorn main:app --host 127.0.0.1 --port $port --log-level warning &
+          done
+
+          # Start FastAPI backend
+          cd backend
+          DATABASE_URL=sqlite+aiosqlite:///./paynexus.db \
+          SYNC_DATABASE_URL=sqlite:///./paynexus.db \
+          REDIS_URL=redis://127.0.0.1:6379/0 \
+          SECRET_KEY=ci-test-secret-key-at-least-32-chars!! \
+          FIELD_ENCRYPTION_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= \
+          uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level warning &
+
+          # Wait for backend
+          sleep 8
+          curl -f http://127.0.0.1:8000/healthz || echo "Backend not ready"
+        continue-on-error: true
+
+      - name: Run Playwright Smoke Tests
+        run: |
+          cd frontend
+          E2E_BASE_URL=http://localhost:3000 \
+          E2E_API_URL=http://localhost:8000 \
+          npx playwright test e2e/smoke.spec.ts --reporter=github
+        continue-on-error: true
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7

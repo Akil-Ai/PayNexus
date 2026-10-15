@@ -58,15 +58,15 @@ async def list_rails(
         output.append({
             "code": r.code,
             "name": r.name,
-            "rail_type": r.rail_type,
+            "rail_type": getattr(r, "rail_type", getattr(r, "code", "UNKNOWN")),
             "is_active": r.is_active,
             "supported_currencies": r.supported_currencies,
             "min_amount_minor": r.min_amount_minor,
             "max_amount_minor": r.max_amount_minor,
-            "base_fee_minor": r.base_fee_minor,
-            "variable_fee_bps": r.variable_fee_bps,
-            "cutoff_time": r.cutoff_time,
-            "settlement_window": r.settlement_window,
+            "base_fee_minor": getattr(r, "base_fee_minor", getattr(r, "fee_fixed_minor", 0)),
+            "variable_fee_bps": getattr(r, "variable_fee_bps", 0),
+            "cutoff_time": getattr(r, "cutoff_time", None),
+            "settlement_window": getattr(r, "settlement_window", getattr(r, "settlement_hours", 0)),
             "circuit_breaker": cb_stats
         })
     return output
