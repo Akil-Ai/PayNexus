@@ -1,0 +1,48 @@
+services:
+  # ── PayNexus Backend API (FastAPI) ───────────────────────────────────
+  - type: web
+    name: paynexus-backend
+    env: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install --no-cache-dir -r requirements.txt && python scripts/init_local_db.py && python scripts/seed.py && python scripts/seed_exceptions_dlq.py
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./paynexus.db
+      - key: SYNC_DATABASE_URL
+        value: sqlite:///./paynexus.db
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: FIELD_ENCRYPTION_KEY
+        value: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      - key: ALLOWED_ORIGINS
+        value: "*"
+
+  # ── PayNexus Frontend (React + Vite SPA) ─────────────────────────────
+  - type: web
+    name: paynexus-frontend
+    env: static
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: paynexus-backend
+          property: host

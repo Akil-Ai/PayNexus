@@ -117,6 +117,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
 
 
 # ── Health & Readiness Endpoints ───────────────────────────────────────────────
+@app.get("/health", tags=["observability"])
 @app.get("/healthz", tags=["observability"])
 async def healthz():
     """Liveness probe."""

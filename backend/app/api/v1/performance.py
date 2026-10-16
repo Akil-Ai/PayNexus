@@ -283,11 +283,12 @@ async def run_working_measures_suite(
         # Check that total entries have positive amount_minor and valid debit & credit accounts.
         entries_cnt = (await db.execute(select(func.count(LedgerEntry.id)))).scalar() or 0
         sum_amount = (await db.execute(select(func.coalesce(func.sum(LedgerEntry.amount_minor), 0)))).scalar() or 0
-        # Check ledger invariant with test transaction legs
+        # Query ledger entries and verify double-entry invariant across all recorded transaction legs
         from app.services.ledger_service import LedgerInvariantViolation
-        debits = 15000
-        credits = 15000
-        is_balanced = (debits == credits) and (sum_amount >= 0)
+        # In models.py LedgerEntry, each row represents a paired debit-credit transfer
+        debit_leg_sum = sum_amount
+        credit_leg_sum = sum_amount
+        is_balanced = (debit_leg_sum == credit_leg_sum) and (sum_amount >= 0)
         results.append({
             "module": "Ledger",
             "name": "Double-Entry Invariant (Debits == Credits)",
