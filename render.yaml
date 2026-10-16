@@ -31,8 +31,7 @@ services:
   - type: web
     name: paynexus-frontend
     env: static
-    region: oregon
-    plan: free
+
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
