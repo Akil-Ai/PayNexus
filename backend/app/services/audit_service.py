@@ -121,6 +121,11 @@ async def verify_audit_chain(db: AsyncSession) -> dict:
     prev_hash = None
 
     for row in rows:
+        raw_created = row.created_at.isoformat() if hasattr(row.created_at, 'isoformat') else str(row.created_at)
+        # Ensure standard ISO representation with 'T' separator to match write_audit_entry
+        if " " in raw_created and "T" not in raw_created:
+            raw_created = raw_created.replace(" ", "T", 1)
+
         row_data = {
             "sequence": row.sequence,
             "entity_type": row.entity_type,
@@ -129,7 +134,7 @@ async def verify_audit_chain(db: AsyncSession) -> dict:
             "actor_id": row.actor_id or "",
             "actor_type": row.actor_type,
             "correlation_id": row.correlation_id or "",
-            "created_at": row.created_at.isoformat() if hasattr(row.created_at, 'isoformat') else str(row.created_at),
+            "created_at": raw_created,
         }
         row_content = _build_row_content(row_data)
         expected_hash = _compute_hash(prev_hash, row_content)

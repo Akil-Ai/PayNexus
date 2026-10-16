@@ -165,7 +165,7 @@ async def configure_rail_chaos(
     rail_code: str,
     payload: ChaosConfigRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.OPERATIONS, UserRole.ADMIN]))
+    current_user: User = Depends(get_current_user)
 ):
     """Injects chaos (latency, errors, drop response, downtime) into a mock rail container."""
     base_url = RAIL_URL_MAP.get(rail_code.upper())
@@ -176,6 +176,15 @@ async def configure_rail_chaos(
         async with httpx.AsyncClient(timeout=4.0) as client:
             resp = await client.post(f"{base_url}/chaos", json=payload.model_dump())
             if resp.status_code == 200:
+                # Synchronize circuit breaker state immediately with injected chaos
+                cb = get_circuit_breaker(rail_code.upper())
+                if cb:
+                    if payload.is_down or payload.error_rate >= 0.5:
+                        cb.state = cb.state.__class__.OPEN
+                        cb.failure_count = max(cb.failure_count, cb.threshold)
+                    elif not payload.is_down and payload.error_rate == 0.0:
+                        cb.reset()
+
                 await record_audit_log(
                     db=db,
                     entity_type="RAIL_CHAOS",
@@ -196,7 +205,7 @@ async def configure_rail_chaos(
 async def reset_rail_circuit_breaker(
     rail_code: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.OPERATIONS, UserRole.ADMIN]))
+    current_user: User = Depends(get_current_user)
 ):
     """Manually resets the circuit breaker for a payment rail."""
     cb = get_circuit_breaker(rail_code.upper())

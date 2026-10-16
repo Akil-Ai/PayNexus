@@ -23,6 +23,8 @@ from app.api.v1.messages import router as messages_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.stream import router as stream_router
 from app.api.v1.admin import router as admin_router
+from app.api.v1.performance import router as performance_router
+from app.core.telemetry import record_http_request, record_error
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -67,20 +69,30 @@ app.add_middleware(
 )
 
 
-# ── Correlation ID & Logging Middleware ────────────────────────────────────────
+# ── Correlation ID, Logging & Telemetry Middleware ────────────────────────────
 @app.middleware("http")
 async def correlation_id_middleware(request: Request, call_next):
     correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
     token = correlation_id_var.set(correlation_id)
 
     start_time = time.time()
+    status_code = 500
     try:
         response = await call_next(request)
+        status_code = response.status_code
         process_time = time.time() - start_time
         response.headers["X-Correlation-ID"] = correlation_id
         response.headers["X-Process-Time"] = f"{process_time:.4f}s"
         return response
+    except Exception as exc:
+        process_time = time.time() - start_time
+        record_error(type(exc).__name__, str(exc), endpoint=request.url.path, status_code=500)
+        raise
     finally:
+        duration_ms = (time.time() - start_time) * 1000
+        # Exclude /metrics and /healthz from recursive metrics counts
+        if not request.url.path.startswith("/metrics") and not request.url.path.startswith("/api/v1/stream"):
+            record_http_request(request.method, request.url.path, status_code, duration_ms)
         correlation_id_var.reset(token)
 
 
@@ -88,6 +100,7 @@ async def correlation_id_middleware(request: Request, call_next):
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     correlation_id = correlation_id_var.get() or "unknown"
+    record_error(type(exc).__name__, str(exc), endpoint=request.url.path, status_code=500)
     logger.error(f"Unhandled server error: {exc}", exc_info=True)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -146,3 +159,4 @@ app.include_router(messages_router, prefix=api_v1_prefix)
 app.include_router(analytics_router, prefix=api_v1_prefix)
 app.include_router(stream_router, prefix=api_v1_prefix)
 app.include_router(admin_router, prefix=api_v1_prefix)
+app.include_router(performance_router, prefix=api_v1_prefix)

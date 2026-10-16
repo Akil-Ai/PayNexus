@@ -15,6 +15,7 @@ import { RailsChaos } from './pages/RailsChaos';
 import { AuditExplorer } from './pages/AuditExplorer';
 import { Admin } from './pages/Admin';
 import { DemoRunner } from './pages/DemoRunner';
+import { Performance } from './pages/Performance';
 import { IntroVideo } from './components/IntroVideo';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -141,6 +142,16 @@ const AnimatedRoutes: React.FC<{ onReplayIntro: () => void }> = ({ onReplayIntro
             <ProtectedRoute>
               <PageTransition>
                 <Admin />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <Performance />
               </PageTransition>
             </ProtectedRoute>
           }

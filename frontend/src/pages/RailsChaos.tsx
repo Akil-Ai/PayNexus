@@ -27,6 +27,9 @@ export const RailsChaos: React.FC = () => {
   const [isDown, setIsDown] = useState(false);
   const [chaosApplying, setChaosApplying] = useState(false);
 
+  const [notice, setNotice] = useState<string | null>(null);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
+
   const fetchRails = async () => {
     try {
       const data = await api.listRails();
@@ -46,6 +49,8 @@ export const RailsChaos: React.FC = () => {
 
   const handleApplyChaos = async () => {
     setChaosApplying(true);
+    setNotice(null);
+    setErrorBanner(null);
     try {
       await api.configureRailChaos(selectedRail, {
         latency_ms: latencyMs,
@@ -53,22 +58,26 @@ export const RailsChaos: React.FC = () => {
         drop_response_rate: dropResponseRate,
         is_down: isDown,
       });
-      alert(`Chaos injected into ${selectedRail} mock service!`);
+      setNotice(`Chaos injected into ${selectedRail} mock service successfully.`);
       fetchRails();
+      setTimeout(() => setNotice(null), 4000);
     } catch (err: any) {
-      alert(`Chaos error: ${err.message}`);
+      setErrorBanner(`Chaos error: ${err.message}`);
     } finally {
       setChaosApplying(false);
     }
   };
 
   const handleResetBreaker = async (railCode: string) => {
+    setNotice(null);
+    setErrorBanner(null);
     try {
       await api.resetCircuitBreaker(railCode);
-      alert(`Circuit breaker for ${railCode} reset to CLOSED!`);
+      setNotice(`Circuit breaker for ${railCode} reset to CLOSED!`);
       fetchRails();
+      setTimeout(() => setNotice(null), 4000);
     } catch (err: any) {
-      alert(`Reset error: ${err.message}`);
+      setErrorBanner(`Reset error: ${err.message}`);
     }
   };
 
@@ -91,6 +100,27 @@ export const RailsChaos: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Notification Toast Banners */}
+      {notice && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{notice}</span>
+          </div>
+          <button onClick={() => setNotice(null)} className="text-emerald-700 hover:text-emerald-950 font-bold">×</button>
+        </div>
+      )}
+
+      {errorBanner && (
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{errorBanner}</span>
+          </div>
+          <button onClick={() => setErrorBanner(null)} className="text-rose-700 hover:text-rose-950 font-bold">×</button>
+        </div>
+      )}
 
       {/* ── Payment Network Adapter Cards (UPI, Cards, Bank Transfers/NEFT, Digital Wallets/SWIFT) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

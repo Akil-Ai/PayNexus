@@ -42,16 +42,22 @@ export const Exceptions: React.FC = () => {
     );
   };
 
+  const [notice, setNotice] = useState<string | null>(null);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
+
   const handleReplayDlq = async () => {
     if (selectedDlq.length === 0) return;
     setReplaying(true);
+    setNotice(null);
+    setErrorBanner(null);
     try {
       await api.replayDlq(selectedDlq);
-      alert(`Successfully replayed ${selectedDlq.length} events back into the payment orchestrator stream!`);
+      setNotice(`Successfully replayed ${selectedDlq.length} events back into the payment orchestrator stream!`);
       setSelectedDlq([]);
       loadData();
+      setTimeout(() => setNotice(null), 4000);
     } catch (err: any) {
-      alert(`DLQ replay failed: ${err.message}`);
+      setErrorBanner(`DLQ replay failed: ${err.message}`);
     } finally {
       setReplaying(false);
     }
@@ -83,6 +89,26 @@ export const Exceptions: React.FC = () => {
           <span>Refresh Queue</span>
         </button>
       </div>
+
+      {notice && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{notice}</span>
+          </div>
+          <button onClick={() => setNotice(null)} className="text-emerald-700 hover:text-emerald-950 font-bold">×</button>
+        </div>
+      )}
+
+      {errorBanner && (
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{errorBanner}</span>
+          </div>
+          <button onClick={() => setErrorBanner(null)} className="text-rose-700 hover:text-rose-950 font-bold">×</button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-slate-200 space-x-6">

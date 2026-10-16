@@ -131,7 +131,7 @@ export const api = {
     }),
 
   // ── Rails & Orchestration ──
-  listRails: () => request<any[]>('/api/v1/rails'),
+  listRails: () => request<any[]>('/api/v1/rails/'),
 
   recommendRail: (params: { amount_minor: number; currency?: string; urgency?: string; destination_country?: string }) =>
     request<any>('/api/v1/rails/recommend', {
@@ -151,7 +151,7 @@ export const api = {
     }),
 
   resetCircuitBreaker: (railCode: string) =>
-    request<any>(`/api/v1/rails/${railCode}/reset-breaker`, {
+    request<any>(`/api/v1/rails/${railCode}/circuit-breaker/reset`, {
       method: 'POST',
     }),
 
@@ -213,7 +213,7 @@ export const api = {
   // ── Exceptions & DLQ ──
   listExceptions: (statusFilter?: string) => {
     const qs = statusFilter ? `?status_filter=${statusFilter}` : '';
-    return request<any[]>(`/api/v1/exceptions${qs}`);
+    return request<any[]>(`/api/v1/exceptions/${qs}`);
   },
 
   assignException: (caseId: string, assignedTo: string) =>
@@ -301,5 +301,24 @@ export const api = {
     request<any>('/api/v1/analytics/investigate', {
       method: 'POST',
       body: JSON.stringify({ query }),
+    }),
+
+  // ── Performance & Working Measures System ──
+  getPerformanceSummary: (window = '1h') =>
+    request<any>(`/api/v1/performance/summary?window=${window}`),
+
+  getPerformanceTargets: () =>
+    request<any>('/api/v1/performance/targets'),
+
+  updatePerformanceTargets: (targets: any) =>
+    request<any>('/api/v1/performance/targets', {
+      method: 'PUT',
+      body: JSON.stringify(targets),
+    }),
+
+  runWorkingMeasuresSuite: () =>
+    request<any>('/api/v1/performance/run-working-measures-suite', {
+      method: 'POST',
+      body: JSON.stringify({}),
     }),
 };
